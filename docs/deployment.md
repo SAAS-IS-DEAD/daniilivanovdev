@@ -6,10 +6,14 @@ Target from ../infra: k3s-02, 62.84.118.213. The application is not yet deployed
 Quality gate runs on GitHub-hosted runners. The deployment job is deliberately gated
 by repository variable DEPLOY_ENABLED=true; this variable has not been enabled.
 
-The initial design follows infra's Argo CD model. A read-only repository deploy key
-was rejected by GitHub: "Deploy keys are disabled for this repository". Enabling the
-setting through Computer Use is pending: browser host unavailable, native Firefox
-access repeatedly times out. No GitHub security setting has been changed.
+Deploy keys were enabled for SAAS-IS-DEAD through GitHub UI after explicit owner
+confirmation. GitHub showed "Deploy key policy enabled". A dedicated read-only key
+(id 168902315) was added only to this repository. Its private key is stored in
+argocd/card-repository on k3s-02. A server-side git ls-remote using that key and
+Argo CD's pinned SSH known_hosts successfully read refs/heads/main.
+
+Repository access is now configured. The Argo Application, release delivery,
+application secrets, database bootstrap and public ingress still need provisioning.
 
 Prepared fallback (not provisioned on the server): deploy/receive.py accepts release
 images through a dedicated forced SSH command, validates their tags, backs up the
