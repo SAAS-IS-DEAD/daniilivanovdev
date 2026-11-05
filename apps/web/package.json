@@ -1,0 +1,20 @@
+{
+  "name": "@business-card/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "dev": "vite",
+    "test:unit": "vitest run",
+    "api:generate": "graphql-codegen --config codegen.ts",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "graphql-request": "7.4.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "7.18.5"
+  }
+}

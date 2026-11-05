@@ -1,0 +1,85 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id             Int           @id @default(1)
+  name           String        @db.VarChar(120)
+  description    String        @db.VarChar(5000)
+  specialization String?       @db.VarChar(160)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+  links          ProfileLink[]
+  skills         Skill[]
+  experience     Experience[]
+  projects       Project[]
+}
+
+model ProfileLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId Int      @default(1)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  label     String   @db.VarChar(80)
+  url       String   @db.VarChar(2048)
+  position  Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([profileId, position])
+}
+
+model Skill {
+  id             String   @id @default(uuid()) @db.Uuid
+  profileId      Int      @default(1)
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  name           String   @db.VarChar(80)
+  normalizedName String
+  sortOrder      Int
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([profileId, normalizedName])
+  @@index([profileId, sortOrder, createdAt, id])
+}
+
+model Experience {
+  id          String    @id @default(uuid()) @db.Uuid
+  profileId   Int       @default(1)
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  company     String    @db.VarChar(160)
+  position    String    @db.VarChar(160)
+  description String?   @db.VarChar(5000)
+  startDate   DateTime  @db.Date
+  endDate     DateTime? @db.Date
+  sortOrder   Int
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([profileId, sortOrder, createdAt, id])
+}
+
+model Project {
+  id            String   @id @default(uuid()) @db.Uuid
+  profileId     Int      @default(1)
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  name          String   @db.VarChar(160)
+  description   String   @db.VarChar(5000)
+  websiteUrl    String?  @db.VarChar(2048)
+  repositoryUrl String?  @db.VarChar(2048)
+  imageUrl      String?  @db.VarChar(2048)
+  sortOrder     Int
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([profileId, sortOrder, createdAt, id])
+}
+
+model SeedState {
+  version   Int      @id
+  appliedAt DateTime @default(now()) @db.Timestamptz(3)
+}

@@ -1,0 +1,90 @@
+"""ISO календарная дата YYYY-MM-DD, без времени."""
+scalar Date
+"""Момент времени ISO 8601 UTC."""
+scalar DateTime
+
+type Profile {
+  id: ID!
+  name: String!
+  description: String!
+  specialization: String
+  links: [ProfileLink!]!
+  skills: [Skill!]!
+  experience: [Experience!]!
+  projects: [Project!]!
+}
+type ProfileLink { id: ID!, label: String!, url: String! }
+type Skill { id: ID!, name: String!, sortOrder: Int! }
+type Experience {
+  id: ID!
+  company: String!
+  position: String!
+  description: String
+  startDate: Date!
+  endDate: Date
+  sortOrder: Int!
+}
+type Project {
+  id: ID!
+  name: String!
+  description: String!
+  websiteUrl: String
+  repositoryUrl: String
+  imageUrl: String
+  sortOrder: Int!
+}
+"""Только для владельца активной сессии. Секрет cookie не возвращается."""
+type Viewer { email: String!, expiresAt: DateTime!, csrfToken: String! }
+type DeletePayload { id: ID! }
+
+input ProfileLinkInput { label: String!, url: String! }
+input UpdateProfileInput {
+  name: String!
+  description: String!
+  specialization: String
+  links: [ProfileLinkInput!]!
+}
+"""Полная форма для create и update; sortOrder обязателен."""
+input SkillInput { name: String!, sortOrder: Int! }
+input ExperienceInput {
+  company: String!
+  position: String!
+  description: String
+  startDate: Date!
+  endDate: Date
+  sortOrder: Int!
+}
+input ProjectInput {
+  name: String!
+  description: String!
+  websiteUrl: String
+  repositoryUrl: String
+  imageUrl: String
+  sortOrder: Int!
+}
+input LoginInput { email: String!, password: String! }
+
+type Query {
+  profile: Profile
+  skills: [Skill!]!
+  skill(id: ID!): Skill
+  experience: [Experience!]!
+  experienceItem(id: ID!): Experience
+  projects: [Project!]!
+  project(id: ID!): Project
+  me: Viewer
+}
+type Mutation {
+  login(input: LoginInput!): Viewer!
+  logout: Boolean!
+  updateProfile(input: UpdateProfileInput!): Profile!
+  createSkill(input: SkillInput!): Skill!
+  updateSkill(id: ID!, input: SkillInput!): Skill!
+  deleteSkill(id: ID!): DeletePayload!
+  createExperience(input: ExperienceInput!): Experience!
+  updateExperience(id: ID!, input: ExperienceInput!): Experience!
+  deleteExperience(id: ID!): DeletePayload!
+  createProject(input: ProjectInput!): Project!
+  updateProject(id: ID!, input: ProjectInput!): Project!
+  deleteProject(id: ID!): DeletePayload!
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@business-card/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "node dist/main.js",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test:unit": "tsc -p tsconfig.test.json && node --test dist-test/test/unit/*.test.js",
+    "test:integration": "tsc -p tsconfig.test.json && node dist-test/test/helpers/run-integration.js",
+    "test:contract": "tsc -p tsconfig.test.json && node --test dist-test/test/contract/*.test.js",
+    "db:generate": "prisma generate",
+    "schema:export": "node dist/cli/export-schema.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node dist/cli/seed-run.js",
+    "setup": "npm run db:migrate && npm run db:seed",
+    "test:coverage": "tsc -p tsconfig.test.json && node dist-test/test/helpers/run-integration.js --coverage"
+  },
+  "dependencies": {
+    "@apollo/server": "5.5.1",
+    "@as-integrations/express5": "1.1.2",
+    "@nestjs/apollo": "14.2.0",
+    "@nestjs/common": "12.3.3",
+    "@nestjs/core": "12.3.3",
+    "@nestjs/graphql": "14.2.0",
+    "@nestjs/platform-express": "12.3.3",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "argon2": "0.45.2",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "dotenv": "18.0.9",
+    "graphql": "16.14.2",
+    "pg": "8.23.1",
+    "proxy-addr": "2.0.8",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  }
+}

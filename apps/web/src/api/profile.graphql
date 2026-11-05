@@ -1,0 +1,36 @@
+query GetProfile {
+  profile {
+    id
+    name
+    description
+    specialization
+    links {
+      id
+      label
+      url
+    }
+    skills {
+      id
+      name
+      sortOrder
+    }
+    experience {
+      id
+      company
+      position
+      description
+      startDate
+      endDate
+      sortOrder
+    }
+    projects {
+      id
+      name
+      description
+      websiteUrl
+      repositoryUrl
+      imageUrl
+      sortOrder
+    }
+  }
+}

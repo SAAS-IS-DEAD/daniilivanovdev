@@ -1,0 +1,37 @@
+import { WEB_ROOT } from '../../src/web/web.module.js';
+import { Clock } from '../../src/common/clock.js';
+import { configureApp } from '../../src/configure-app.js';
+import 'reflect-metadata';
+import { Test } from '@nestjs/testing';
+import type { Type } from '@nestjs/common';
+import { ENVIRONMENT, EnvironmentModule, loadEnvironment } from '../../src/config/environment.js';
+import { PrismaModule } from '../../src/prisma/prisma.module.js';
+import { assertTestDatabase, TEST_DATABASE_URL } from './database.js';
+
+export async function createTestApplication(
+  module: Type,
+  clock: Clock = new Clock(),
+  webRoot?: string,
+) {
+  assertTestDatabase();
+  const builder = Test.createTestingModule({
+    imports: [EnvironmentModule, PrismaModule, module],
+  })
+    .overrideProvider(Clock)
+    .useValue(clock)
+    .overrideProvider(ENVIRONMENT)
+    .useValue(
+      loadEnvironment({
+        DATABASE_URL: TEST_DATABASE_URL,
+        APP_ORIGIN: 'http://localhost:3000',
+        NODE_ENV: 'test',
+        AUTH_RATE_KEY: 'test-key-not-for-production'.repeat(3),
+      }),
+    );
+  if (webRoot) builder.overrideProvider(WEB_ROOT).useValue(webRoot);
+  const testing = await builder.compile();
+  const app = testing.createNestApplication({ logger: false, bodyParser: false });
+  configureApp(app);
+  await app.init();
+  return app;
+}

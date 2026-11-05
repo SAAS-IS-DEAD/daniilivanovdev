@@ -1,0 +1,44 @@
+"""ISO календарная дата YYYY-MM-DD, без времени."""
+scalar Date
+"""Момент времени ISO 8601 UTC."""
+scalar DateTime
+
+type Profile {
+  id: ID!
+  name: String!
+  description: String!
+  specialization: String
+  links: [ProfileLink!]!
+  skills: [Skill!]!
+  experience: [Experience!]!
+  projects: [Project!]!
+}
+type ProfileLink { id: ID!, label: String!, url: String! }
+type Skill { id: ID!, name: String!, sortOrder: Int! }
+type Experience {
+  id: ID!
+  company: String!
+  position: String!
+  description: String
+  startDate: Date!
+  endDate: Date
+  sortOrder: Int!
+}
+type Project {
+  id: ID!
+  name: String!
+  description: String!
+  websiteUrl: String
+  repositoryUrl: String
+  imageUrl: String
+  sortOrder: Int!
+}
+type Query {
+  profile: Profile
+  skills: [Skill!]!
+  skill(id: ID!): Skill
+  experience: [Experience!]!
+  experienceItem(id: ID!): Experience
+  projects: [Project!]!
+  project(id: ID!): Project
+}

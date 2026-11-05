@@ -1,0 +1,5 @@
+CREATE TABLE "SeedState" (
+  "version" INTEGER NOT NULL,
+  "appliedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SeedState_pkey" PRIMARY KEY ("version")
+);
