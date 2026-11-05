@@ -1,26 +1,113 @@
-name: Quality gate
+name: CI and deployment
 on:
   push:
+    branches: [ main, 001-digital-business-card ]
   pull_request:
 permissions:
   contents: read
 jobs:
-  verify:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-          cache: npm
-      - name: Install pinned dependencies
-        run: npm ci
-      - name: Build, static checks, unit, integration, contract and coverage
-        run: npm run verify
+      - uses: ./.github/actions/setup-node
+      - run: npm run lint
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run format:check
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run build
+  types:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run build && npm run typecheck
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run build && npm run test:unit
+  integration:
+    name: Backend integration / Testcontainers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run db:generate && npm run test:integration
+  contract:
+    name: GraphQL contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run db:generate && npm run test:contract
+  coverage:
+    name: Coverage thresholds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run build && npm run test:coverage
+  deployment-tests:
+    name: Deployment configuration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: npm run test:deployment
+  e2e:
+    name: Browser E2E / production Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Create isolated CI configuration
+        run: |
+          node --input-type=module <<'JS'
+          import { randomBytes } from 'node:crypto';
+          import { writeFileSync } from 'node:fs';
+          writeFileSync('.env', `POSTGRES_PASSWORD=${randomBytes(24).toString('hex')}\nAUTH_RATE_KEY=${randomBytes(32).toString('hex')}\nAPP_ORIGIN=http://localhost:3000\n`, { mode: 0o600 });
+          JS
+      - name: Build and start application
+        run: docker compose up --build -d --wait --wait-timeout 180
+      - name: Run browser tests
+        run: npm run test:e2e
+      - name: Application diagnostics on failure
+        if: failure()
+        run: docker compose ps && docker compose logs --tail 100 app setup
+      - name: Stop isolated application
+        if: always()
+        run: docker compose down --volumes
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      [ lint, format, types, build, unit, integration, contract, coverage, deployment-tests, e2e ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
@@ -29,6 +116,19 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+      - name: Validate deployment configuration
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          for name in DEPLOY_HOST APP_ORIGIN DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing deployment configuration: $name"
+              exit 1
+            fi
+          done
       - name: Build immutable Linux images
         env:
           REVISION: ${{ github.sha }}

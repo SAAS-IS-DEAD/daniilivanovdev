@@ -57,7 +57,8 @@ Backend: встроенный Node coverage для **исполненных ск
 
 ## CI
 
-`.github/workflows/ci.yml` выполняет `npm run verify` на push и pull_request с отдельной
+`.github/workflows/ci.yml` запускает отдельные jobs для lint, format, types, build, unit,
+integration, contract, coverage, deployment-tests и E2E на push/PR с отдельной
 PostgreSQL, которую создаёт Testcontainers (без Compose setup/teardown в CI). Ошибка тестов или падение покрытия завершает job
 неуспешно. Workflow подготовлен и его команды проверены локально; удалённый GitHub
 прогон в этой работе не запускался. Для запрета merge владелец репозитория может

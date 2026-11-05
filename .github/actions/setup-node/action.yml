@@ -1,0 +1,11 @@
+name: Project dependencies
+description: Install the pinned Node version and lockfile dependencies
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .node-version
+        cache: npm
+    - shell: bash
+      run: npm ci --no-audit --no-fund
