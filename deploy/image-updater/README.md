@@ -36,7 +36,7 @@ kubectl -n argocd create secret generic card-image-updater-git \
 
 ## Bootstrap after credentials are ready
 
-- Review deploy/gitops/resources.json: temporary HTTPS origin is provisional.
+- Review deploy/gitops/resources.json: canonical HTTPS origin is daniil-ivanov.dev.
 - Prepare namespace and card-env Secret for the shared PostgreSQL, restricted app DB role,
   persistent volume retention, external nginx/TLS and backup policy.
 - Publish initial image through green main CI and pin its digest in kustomization.yaml.

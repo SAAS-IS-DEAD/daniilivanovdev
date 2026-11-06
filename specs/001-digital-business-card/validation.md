@@ -283,3 +283,18 @@
 - Actual automatic update confirmed: updater commit b221c8e5 changed Kustomize digest
   from 3e94703d to 0361d8d9. Argo synced that revision, repeated migrations successfully
   and completed deployment/app rollout. Initial pod remained ready during cold pull.
+
+## Custom domain — 2026-11-06
+
+- DNS for daniil-ivanov.dev and www.daniil-ivanov.dev resolves to 62.84.118.213.
+  Original HTTPS failed hostname verification because nginx served the temporary certificate.
+- Issued Let's Encrypt certificate covering both names; configured dedicated nginx vhost,
+  HTTP and www redirects to https://daniil-ivanov.dev, existing renewal/reload automation.
+  Private TLS key remains on server and was never printed or committed.
+- Regression test for APP_ORIGIN first failed on the old sslip origin, then passed.
+  Added nginx certificate/canonical-routing config checks; deployment tests all pass.
+- Full verify passed; new nginx config passed nginx -t and was reloaded successfully.
+- GitOps commit 3fea716 updated origin without overwriting the updater's current image
+  digest. Argo Synced/Healthy at this revision; readiness returns canonical CORS origin.
+- HTTPS certificate validation succeeds for root and www; HTTP and www return 301.
+  All 9 Playwright E2E passed against https://daniil-ivanov.dev, including Sandbox.

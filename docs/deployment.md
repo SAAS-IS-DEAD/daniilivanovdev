@@ -22,8 +22,8 @@ No private keys or production credentials are committed.
 
 ## Live state — 2026-11-06
 
-- URL: https://daniilivanovdev.62.84.118.213.sslip.io/
-- Sandbox: https://daniilivanovdev.62.84.118.213.sslip.io/graphql
+- URL: https://daniil-ivanov.dev/
+- Sandbox: https://daniil-ivanov.dev/graphql
 - Shared PostgreSQL: db/db-0, db.db.svc.cluster.local:5432. A new shared instance was
   initialised on k3s-02; no data from other applications was restored.
 - Isolated database and owner role: daniil_card, LOGIN without SUPERUSER/CREATEDB/CREATEROLE.
@@ -38,3 +38,8 @@ No private keys or production credentials are committed.
 - Prisma migrations and seed succeeded: 1 profile, 49 skills, 6 experience, 4 projects.
 - nginx proxies the app ClusterIP; valid Let's Encrypt certificate and reload hook installed.
 - verify and deployment tests passed; all 9 E2E passed against public HTTPS.
+
+Custom domain: daniil-ivanov.dev, with HTTP/www redirects to canonical HTTPS.
+TLS covers root and www, certificate managed by certbot with nginx reload on renewal.
+Tracked vhost template: deploy/nginx/daniil-ivanov.dev.conf (replace APP_CLUSTER_IP
+with the app Service ClusterIP when provisioning). Private TLS keys stay on the host.

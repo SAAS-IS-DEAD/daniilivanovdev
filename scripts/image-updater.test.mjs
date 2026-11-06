@@ -78,3 +78,23 @@ test('GitOps uses shared PostgreSQL access labels and never owns a database serv
     assert.equal(r.spec.template.metadata.labels['database-client'], 'shared-postgres');
   }
 });
+
+test('production origin matches the canonical custom domain', () => {
+  const app = resources.find((r) => r.kind === 'Deployment');
+  assert.equal(
+    app.spec.template.spec.containers[0].env.find((e) => e.name === 'APP_ORIGIN').value,
+    'https://daniil-ivanov.dev',
+  );
+});
+
+test('custom domain nginx serves matching certificate and canonical redirects', () => {
+  const nginx = read('deploy/nginx/daniil-ivanov.dev.conf');
+  assert.match(nginx, /server_name daniil-ivanov\.dev;/);
+  assert.match(nginx, /server_name www\.daniil-ivanov\.dev;/);
+  assert.match(
+    nginx,
+    /ssl_certificate \/etc\/letsencrypt\/live\/daniil-ivanov\.dev\/fullchain\.pem;/,
+  );
+  assert.match(nginx, /return 301 https:\/\/daniil-ivanov\.dev\$request_uri;/);
+  assert.match(nginx, /location \^~ \/\.well-known\/acme-challenge\//);
+});

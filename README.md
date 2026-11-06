@@ -153,6 +153,6 @@ Compose не публикует порт рабочей БД наружу.
 
 Текущий статус публикации и CI/CD: [docs/deployment.md](docs/deployment.md).
 
-Публичный сайт: https://daniilivanovdev.62.84.118.213.sslip.io/
+Публичный сайт: https://daniil-ivanov.dev/
 
-Apollo Sandbox: https://daniilivanovdev.62.84.118.213.sslip.io/graphql
+Apollo Sandbox: https://daniil-ivanov.dev/graphql
