@@ -263,3 +263,19 @@
 - Контроллер/Application/CR не активированы: ожидаются write key, GHCR credentials,
   bootstrap БД, начальный digest и ingress. Реального обновления registry → Git → Argo
   пока не было. Детали: deploy/image-updater/README.md.
+
+## Shared DB and live GitOps — 2026-11-06
+
+- New shared PostgreSQL initialised on k3s-02 according to infra network/namespace model.
+  Old image digest returned not found; pinned available PostgreSQL 17.6 and kept same PVC.
+- Dedicated daniil_card role/database, no admin privileges, PUBLIC CONNECT revoked;
+  app credentials never printed/committed. Shared PV set Retain.
+- Unit regression for shared-DB manifests first failed, then passed after removing
+  app-owned StatefulSet/service/network policy and adding required namespace/Pod labels.
+- Full verify passed, migration hook and seed succeeded against real shared PostgreSQL.
+- Argo auto-sync enabled and Synced/Healthy. Image Updater Git write-back observed,
+  error condition False after a transient GHCR TLS timeout on the first pass.
+- Public HTTPS readiness and all 9 Playwright E2E passed, including real Sandbox.
+- Initial role inspection: daniil_card|f|f|f; database owner daniil_card; counts 1|49|6|4.
+- Shared infra overlay saved locally under ../infra/environments/card-shared-db;
+  unrelated infra dirty work not committed/pushed. No off-host DB backup configured.
