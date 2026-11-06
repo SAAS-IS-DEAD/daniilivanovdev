@@ -67,3 +67,5 @@ T061 и проектирование можно выполнять до полу
 - [x] T070 Перевести integration/coverage на Testcontainers PostgreSQL: автоматические start/migrate/test/stop, случайные координаты, строгий guard, unit-тесты lifecycle/guard, интеграционная проверка cleanup после ошибки; обновить CI/README/AGENTS и пройти verify.
 
 - [x] T071 Подготовить Image Updater v1.4.0, Kustomize, Application/AppProject, единый release image и GHCR publication после всех checks; отдельный Git write-back Secret и registry pull Secrets. Проверить CRD schema, kustomize, server dry-run и verify. Активация отложена до credentials/bootstrap.
+
+- [x] T072 Move deployment, Image Updater, nginx and infrastructure tests to infra; switch live Argo/write-back sources, isolate credentials, preserve unrelated infra work, verify live health and infra CI.

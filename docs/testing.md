@@ -58,8 +58,11 @@ Backend: встроенный Node coverage для **исполненных ск
 ## CI
 
 `.github/workflows/ci.yml` запускает отдельные jobs для lint, format, types, build, unit,
-integration, contract, coverage, deployment-tests и E2E на push/PR с отдельной
+integration, contract, coverage, ci-tests и E2E на push/PR с отдельной
 PostgreSQL, которую создаёт Testcontainers (без Compose setup/teardown в CI). Ошибка тестов или падение покрытия завершает job
 неуспешно. Workflow подготовлен и его команды проверены локально; удалённый GitHub
 прогон в этой работе не запускался. Для запрета merge владелец репозитория может
 сделать job `verify` обязательным в branch protection; эти настройки не менялись.
+
+Deployment configuration tests now live in infra/tests/test_card_gitops.py.
+Application workflow behaviour is checked with npm run test:ci.

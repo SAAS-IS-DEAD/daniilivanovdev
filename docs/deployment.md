@@ -1,45 +1,20 @@
-# Deployment preparation
+# Deployment ownership
 
-Repository: https://github.com/SAAS-IS-DEAD/daniilivanovdev (private).
-Target: k3s-02, 62.84.118.213. Application is deployed and Argo auto-sync is enabled.
+All Kubernetes, Argo CD, Image Updater, shared database and nginx configuration is
+owned by [SAAS-IS-DEAD/infra](https://github.com/SAAS-IS-DEAD/infra).
 
-CI has separate lint/format/types/build/unit/integration/contract/coverage/deployment-tests/E2E
-checks. After green main, publish pushes one release image to GHCR with SHA and main tags.
-There is no direct SSH deployment from CI.
+- apps/daniilivanovdev: application, migration hook, Kustomize image digest.
+- gitops/daniilivanovdev.yaml: Argo Application and AppProject.
+- platform/image-updater: pinned controller and card ImageUpdater configuration.
+- nginx/daniil-ivanov.dev.conf: canonical domain/TLS proxy template.
+- tests/test_card_gitops.py: infrastructure behaviour/configuration checks.
 
-Argo CD Image Updater v1.4.0 preparation, bootstrap steps and Secret requirements:
-[deploy/image-updater/README.md](../deploy/image-updater/README.md).
-The updater follows the main tag by digest and commits Kustomize changes to deploy/k3s-02.
-Argo CD reads that branch using the existing read-only card-repository deploy key.
-Application and migration Job share the same image and digest.
+Argo and Image Updater track infra branch deploy/k3s-02. Git write-back goes only
+to infra; the application repository no longer contains a deploy branch source.
+CI here runs checks and publishes ghcr.io/saas-is-dead/daniilivanovdev after green main.
+The Dockerfile/release image belongs to this application repository.
 
-Git write-back and GHCR read credentials are configured in Kubernetes Secrets.
-The controller and Application are active; shared DB, migrations and HTTPS have been
-verified. See the live state below.
-
-Old deploy/receive.py is a historical SSH fallback, not used by the workflow.
-No private keys or production credentials are committed.
-
-## Live state — 2026-11-06
-
-- URL: https://daniil-ivanov.dev/
-- Sandbox: https://daniil-ivanov.dev/graphql
-- Shared PostgreSQL: db/db-0, db.db.svc.cluster.local:5432. A new shared instance was
-  initialised on k3s-02; no data from other applications was restored.
-- Isolated database and owner role: daniil_card, LOGIN without SUPERUSER/CREATEDB/CREATEROLE.
-  PUBLIC CONNECT revoked for this database; credentials only in card-env Secret.
-- Shared namespace/Pod network labels configured. The app does not own a DB StatefulSet/PVC.
-- Shared PV reclaim policy Retain. No off-host database backup is configured yet.
-- Original infra PostgreSQL digest was unavailable. Replacement overlay:
-  ../infra/environments/card-shared-db, postgres:17.6-bookworm at pinned digest.
-  Other uncommitted infra work was not committed or pushed.
-- Argo Application Synced/Healthy, automated.enabled=true, selfHeal=true, prune=false.
-- Image Updater wrote a digest update to deploy/k3s-02; next reconciliation had no errors.
-- Prisma migrations and seed succeeded: 1 profile, 49 skills, 6 experience, 4 projects.
-- nginx proxies the app ClusterIP; valid Let's Encrypt certificate and reload hook installed.
-- verify and deployment tests passed; all 9 E2E passed against public HTTPS.
-
-Custom domain: daniil-ivanov.dev, with HTTP/www redirects to canonical HTTPS.
-TLS covers root and www, certificate managed by certbot with nginx reload on renewal.
-Tracked vhost template: deploy/nginx/daniil-ivanov.dev.conf (replace APP_CLUSTER_IP
-with the app Service ClusterIP when provisioning). Private TLS keys stay on the host.
+Live site: https://daniil-ivanov.dev/
+GraphQL Sandbox: https://daniil-ivanov.dev/graphql
+Shared PostgreSQL: db.db.svc.cluster.local:5432; isolated role/database daniil_card.
+Credentials remain in Kubernetes Secrets and are never committed.

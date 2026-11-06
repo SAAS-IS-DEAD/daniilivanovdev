@@ -298,3 +298,21 @@
   digest. Argo Synced/Healthy at this revision; readiness returns canonical CORS origin.
 - HTTPS certificate validation succeeds for root and www; HTTP and www return 301.
   All 9 Playwright E2E passed against https://daniil-ivanov.dev, including Sandbox.
+
+## Deployment moved to infra — 2026-11-06
+
+- Moved card Kubernetes/Kustomize manifests to infra/apps/daniilivanovdev,
+  controller/CR to infra/platform/image-updater, Application/Project to infra/gitops,
+  nginx template to infra/nginx and shared DB overlay to infra/environments/card-shared-db.
+- Used isolated infra worktrees from remote main/deploy/k3s-02. Existing dirty Mogg,
+  monitoring, inventory and site changes were not staged or pushed.
+- Separate read-only Argo and write-capable updater keys installed for infra repository.
+  Git read/write dry-run passed. Argo source and updater write-back now use infra.
+  Old app-repository keys and unused cluster Secrets removed after successful switch.
+- Infra ownership tests first failed with old application URL, then passed after migration.
+  Five Python tests cover source/path/scope/shared DB/atomic image/CRD/TLS/migration order.
+  Kustomize rendered; live Argo Synced/Healthy, updater generation 2 has no errors,
+  public readiness returns ready. Infra GitHub CI succeeded.
+- Removed deployment manifests and obsolete SSH receiver/renderers from application.
+  Config tests moved to infra; app retains four CI tests and image publication only.
+- Full application verify passed; final changed CI tests/Biome and infra tests passed.

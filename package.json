@@ -22,8 +22,8 @@
     "lint:fix": "biome lint --write .",
     "check": "biome check .",
     "test:coverage": "npm run test:coverage --workspace apps/api && npm run test:coverage --workspace apps/web",
-    "verify": "npm run build && npm run check && npm run typecheck && npm run test:coverage && npm run test:deployment",
-    "test:deployment": "node --test scripts/*.test.mjs && python3 -m unittest discover -s deploy -p \"test_*.py\""
+    "verify": "npm run build && npm run check && npm run typecheck && npm run test:coverage && npm run test:ci",
+    "test:ci": "node --test scripts/ci-workflow.test.mjs"
   },
   "packageManager": "npm@11.21.1",
   "devDependencies": {

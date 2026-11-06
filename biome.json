@@ -20,8 +20,7 @@
       "!!playwright-report",
       "!!test-results",
       "!!artifacts",
-      "!**/package-lock.json",
-      "!!deploy/image-updater/vendor"
+      "!**/package-lock.json"
     ]
   },
   "formatter": {

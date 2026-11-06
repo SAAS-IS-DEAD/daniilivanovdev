@@ -54,3 +54,11 @@ test('E2E configuration script writes valid separate environment lines', () => {
     rmSync(cwd, { recursive: true, force: true });
   }
 });
+
+test('application CI publishes images without infrastructure access', () => {
+  const commands = workflow.jobs.publish.steps.map((s) => s.run ?? '').join('\n');
+  assert.match(commands, /docker push/);
+  assert.match(commands, /--target release/);
+  assert.doesNotMatch(commands, /\bssh\b|\bkubectl\b/);
+  assert.equal(workflow.jobs.publish.permissions.packages, 'write');
+});

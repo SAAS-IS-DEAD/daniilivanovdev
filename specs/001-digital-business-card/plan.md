@@ -83,3 +83,9 @@ Admin/Session/LoginAttemptWindow, login/logout/me, CSRF для входа и CRU
 порт и случайное имя базы/пароль. Миграции выполняются до тестов, очистка — в finally;
 Ryuk включён. Постоянная compose.test.yaml больше не используется и удалена.
 Нужен работающий Docker; CI выполняет npm run verify без ручного старта PostgreSQL.
+
+## Deployment ownership (2026-11-06)
+
+Deployment is owned exclusively by SAAS-IS-DEAD/infra. Application CI validates
+application code and publishes the release image. Argo and Image Updater track
+infra/deploy/k3s-02; application-repository deployment paths are historical only.
