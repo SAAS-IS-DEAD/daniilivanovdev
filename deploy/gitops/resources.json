@@ -8,148 +8,12 @@
       "metadata": {
         "name": "daniilivanovdev",
         "labels": {
-          "app.kubernetes.io/name": "daniilivanovdev"
+          "app.kubernetes.io/name": "daniilivanovdev",
+          "database-access": "shared-postgres"
         },
         "annotations": {
           "argocd.argoproj.io/sync-wave": "-3"
         }
-      }
-    },
-    {
-      "apiVersion": "v1",
-      "kind": "Service",
-      "metadata": {
-        "name": "postgres",
-        "namespace": "daniilivanovdev",
-        "labels": {
-          "app.kubernetes.io/name": "daniilivanovdev"
-        },
-        "annotations": {
-          "argocd.argoproj.io/sync-wave": "-2"
-        }
-      },
-      "spec": {
-        "clusterIP": "None",
-        "selector": {
-          "app": "card-postgres"
-        },
-        "ports": [
-          {
-            "port": 5432,
-            "targetPort": 5432
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "apps/v1",
-      "kind": "StatefulSet",
-      "metadata": {
-        "name": "postgres",
-        "namespace": "daniilivanovdev",
-        "labels": {
-          "app.kubernetes.io/name": "daniilivanovdev"
-        },
-        "annotations": {
-          "argocd.argoproj.io/sync-wave": "-2"
-        }
-      },
-      "spec": {
-        "serviceName": "postgres",
-        "replicas": 1,
-        "selector": {
-          "matchLabels": {
-            "app": "card-postgres"
-          }
-        },
-        "persistentVolumeClaimRetentionPolicy": {
-          "whenDeleted": "Retain",
-          "whenScaled": "Retain"
-        },
-        "template": {
-          "metadata": {
-            "labels": {
-              "app": "card-postgres"
-            }
-          },
-          "spec": {
-            "automountServiceAccountToken": false,
-            "terminationGracePeriodSeconds": 60,
-            "containers": [
-              {
-                "name": "postgres",
-                "image": "postgres:17.6-bookworm",
-                "imagePullPolicy": "IfNotPresent",
-                "envFrom": [
-                  {
-                    "secretRef": {
-                      "name": "card-postgres"
-                    }
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "PGDATA",
-                    "value": "/var/lib/postgresql/data/pgdata"
-                  }
-                ],
-                "ports": [
-                  {
-                    "containerPort": 5432
-                  }
-                ],
-                "resources": {
-                  "requests": {
-                    "cpu": "50m",
-                    "memory": "128Mi"
-                  },
-                  "limits": {
-                    "cpu": "500m",
-                    "memory": "384Mi"
-                  }
-                },
-                "securityContext": {
-                  "allowPrivilegeEscalation": false
-                },
-                "volumeMounts": [
-                  {
-                    "name": "data",
-                    "mountPath": "/var/lib/postgresql/data"
-                  }
-                ],
-                "readinessProbe": {
-                  "exec": {
-                    "command": ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-                  },
-                  "periodSeconds": 5
-                },
-                "startupProbe": {
-                  "exec": {
-                    "command": ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-                  },
-                  "periodSeconds": 5,
-                  "failureThreshold": 36
-                }
-              }
-            ]
-          }
-        },
-        "volumeClaimTemplates": [
-          {
-            "metadata": {
-              "name": "data"
-            },
-            "spec": {
-              "accessModes": ["ReadWriteOnce"],
-              "storageClassName": "local-path",
-              "resources": {
-                "requests": {
-                  "storage": "1Gi"
-                }
-              }
-            }
-          }
-        ]
       }
     },
     {
@@ -213,6 +77,11 @@
                 "name": "ghcr-pull"
               }
             ]
+          },
+          "metadata": {
+            "labels": {
+              "database-client": "shared-postgres"
+            }
           }
         }
       }
@@ -249,7 +118,8 @@
         "template": {
           "metadata": {
             "labels": {
-              "app": "card-web"
+              "app": "card-web",
+              "database-client": "shared-postgres"
             }
           },
           "spec": {
@@ -364,43 +234,6 @@
           {
             "port": 80,
             "targetPort": 3000
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "networking.k8s.io/v1",
-      "kind": "NetworkPolicy",
-      "metadata": {
-        "name": "postgres-only-app",
-        "namespace": "daniilivanovdev",
-        "labels": {
-          "app.kubernetes.io/name": "daniilivanovdev"
-        },
-        "annotations": {
-          "argocd.argoproj.io/sync-wave": "0"
-        }
-      },
-      "spec": {
-        "podSelector": {
-          "matchLabels": {
-            "app": "card-postgres"
-          }
-        },
-        "policyTypes": ["Ingress"],
-        "ingress": [
-          {
-            "from": [
-              {
-                "podSelector": {}
-              }
-            ],
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 5432
-              }
-            ]
           }
         ]
       }

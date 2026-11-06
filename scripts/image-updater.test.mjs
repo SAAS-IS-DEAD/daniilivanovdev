@@ -67,3 +67,14 @@ test('publication only pushes registry images and does not connect to the server
   assert.doesNotMatch(commands, /\bssh\b|\bkubectl\b/);
   assert.equal(ci.jobs.publish.permissions.packages, 'write');
 });
+
+test('GitOps uses shared PostgreSQL access labels and never owns a database server', () => {
+  assert(!resources.some((r) => r.kind === 'StatefulSet' || r.kind === 'PersistentVolumeClaim'));
+  assert.equal(
+    resources.find((r) => r.kind === 'Namespace').metadata.labels['database-access'],
+    'shared-postgres',
+  );
+  for (const r of resources.filter((r) => ['Deployment', 'Job'].includes(r.kind))) {
+    assert.equal(r.spec.template.metadata.labels['database-client'], 'shared-postgres');
+  }
+});

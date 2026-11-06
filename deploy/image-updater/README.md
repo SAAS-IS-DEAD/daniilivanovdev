@@ -35,7 +35,7 @@ kubectl -n argocd create secret generic card-image-updater-git \
 ## Bootstrap after credentials are ready
 
 - Review deploy/gitops/resources.json: temporary HTTPS origin is provisional.
-- Prepare namespace, card-postgres and card-env Secrets, restricted app DB role,
+- Prepare namespace and card-env Secret for the shared PostgreSQL, restricted app DB role,
   persistent volume retention, external nginx/TLS and backup policy.
 - Publish initial image through green main CI and pin its digest in kustomization.yaml.
 - Create deploy/k3s-02 branch including the GitOps manifests.
@@ -48,3 +48,7 @@ kubectl -n argocd create secret generic card-image-updater-git \
   migration hook and Argo rollout. No successful live update is claimed yet.
 
 The old deploy/receive.py SSH fallback is obsolete and no longer invoked by CI.
+
+Shared DB: db.db.svc.cluster.local:5432, database/role daniil_card. Namespace
+requires database-access=shared-postgres; app and migration Pods require
+database-client=shared-postgres. No app-owned PostgreSQL/PVC is deployed.
