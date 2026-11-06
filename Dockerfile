@@ -31,3 +31,7 @@ COPY --from=build /app/apps/web/dist ./apps/web/dist
 USER node
 EXPOSE 3000
 CMD ["node", "apps/api/dist/main.js"]
+
+# One digest is used for both the app and migration Job in GitOps.
+FROM setup AS release
+CMD ["node", "apps/api/dist/main.js"]

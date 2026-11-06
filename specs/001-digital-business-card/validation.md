@@ -247,3 +247,19 @@
 - Удалены compose.test.yaml и старый отдельный daniil-card-test контейнер/сеть.
   CI, README, AGENTS и docs/testing.md переведены на автоматический lifecycle.
   Remote GitHub CI не запускался; его команда verify проверена локально.
+
+## Подготовка Image Updater — 2026-11-06
+
+- Закреплён upstream v1.4.0, manifest vendored с SHA256; Kustomize overlay ограничивает
+  ресурсы controller. Подготовлены Application/AppProject и ImageUpdater только для визитки.
+- CI больше не делает SSH deploy: job publish после всех checks публикует единый
+  release image в GHCR. Digest меняется одновременно у app и migration Job.
+- Git write-back настроен на deploy/k3s-02 и отдельный Secret card-image-updater-git;
+  read-only Argo key не переиспользуется для записи. GHCR credentials отдельные.
+- Конфигурация CR проверена по vendored upstream CRD, Kustomize rendering успешен.
+  Server-side dry-run установки на k3s-02 успешен без изменения кластера.
+- npm run verify прошёл; 9 Node deployment/config тестов + 2 Python теста зелёные.
+  Release Docker target собран; app/schema/Prisma CLI доступны, пользователь UID 1000.
+- Контроллер/Application/CR не активированы: ожидаются write key, GHCR credentials,
+  bootstrap БД, начальный digest и ingress. Реального обновления registry → Git → Argo
+  пока не было. Детали: deploy/image-updater/README.md.

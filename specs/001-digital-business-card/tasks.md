@@ -65,3 +65,5 @@ T061 и проектирование можно выполнять до полу
 - [x] T069 Расширить unit/component и backend integration тесты текущего поведения, добавить coverage thresholds, npm run verify, GitHub CI и обязательное правило «нет фич без тестов» в AGENTS.md/конституцию. Описать матрицу в docs/testing.md; локальный gate проходит, удалённый CI не запускался.
 
 - [x] T070 Перевести integration/coverage на Testcontainers PostgreSQL: автоматические start/migrate/test/stop, случайные координаты, строгий guard, unit-тесты lifecycle/guard, интеграционная проверка cleanup после ошибки; обновить CI/README/AGENTS и пройти verify.
+
+- [x] T071 Подготовить Image Updater v1.4.0, Kustomize, Application/AppProject, единый release image и GHCR publication после всех checks; отдельный Git write-back Secret и registry pull Secrets. Проверить CRD schema, kustomize, server dry-run и verify. Активация отложена до credentials/bootstrap.

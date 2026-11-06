@@ -8,7 +8,7 @@ import { parse } from 'yaml';
 const workflow = parse(
   readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'),
 );
-test('deployment waits for every independent check and runs only on main pushes', () => {
+test('publication waits for every independent check and runs only on main pushes', () => {
   const { jobs } = workflow;
   for (const id of [
     'lint',
@@ -23,13 +23,13 @@ test('deployment waits for every independent check and runs only on main pushes'
   ])
     assert(jobs[id]);
   assert.deepEqual(
-    [...jobs.deploy.needs].sort(),
+    [...jobs.publish.needs].sort(),
     Object.keys(jobs)
-      .filter((id) => id !== 'deploy')
+      .filter((id) => id !== 'publish')
       .sort(),
   );
-  assert.equal(jobs.deploy.if, "github.event_name == 'push' && github.ref == 'refs/heads/main'");
-  assert.equal(jobs.deploy.concurrency['cancel-in-progress'], false);
+  assert.equal(jobs.publish.if, "github.event_name == 'push' && github.ref == 'refs/heads/main'");
+  assert.equal(jobs.publish.concurrency['cancel-in-progress'], false);
 });
 test('E2E starts real Docker app and always tears it down', () => {
   const steps = workflow.jobs.e2e.steps;

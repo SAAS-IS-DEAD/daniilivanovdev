@@ -1,0 +1,2 @@
+Source: https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v1.4.0/config/install.yaml
+SHA256: def04f52cb940da4fb4799630c1ace964902c0f3b97d57b382ff3e6577ae7044

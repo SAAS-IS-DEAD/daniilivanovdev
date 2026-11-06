@@ -104,60 +104,30 @@ jobs:
       - name: Stop isolated application
         if: always()
         run: docker compose down --volumes
-  deploy:
+  publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       [ lint, format, types, build, unit, integration, contract, coverage, deployment-tests, e2e ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
     concurrency:
-      group: production-deployment
+      group: production-image-publication
       cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
-      - name: Validate deployment configuration
+      - name: Log in to GHCR
         env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          for name in DEPLOY_HOST APP_ORIGIN DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Missing deployment configuration: $name"
-              exit 1
-            fi
-          done
-      - name: Build immutable Linux images
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and publish release
         env:
           REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          docker build --platform linux/amd64 --target runtime -t "card-runtime:$REVISION" .
-          docker build --platform linux/amd64 --target setup -t "card-setup:$REVISION" .
-          docker pull --platform linux/amd64 postgres:17.6-bookworm
-          docker save "card-runtime:$REVISION" "card-setup:$REVISION" postgres:17.6-bookworm | gzip -1 > /tmp/card-release.tar.gz
-      - name: Deploy through the restricted server command
-        env:
-          REVISION: ${{ github.sha }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/card-deploy"
-          chmod 600 "$HOME/.ssh/card-deploy"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          { printf '%s\n' "$REVISION"; cat /tmp/card-release.tar.gz; } |
-            ssh -i "$HOME/.ssh/card-deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-              -o ServerAliveInterval=30 "card-deployer@$DEPLOY_HOST"
-      - name: Check public release
-        env:
-          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
-        run: |
-          curl --fail --retry 6 --retry-delay 5 "$APP_ORIGIN/health/ready"
-          curl --fail "$APP_ORIGIN/graphql" -H 'Content-Type: application/json' \
-            --data '{"query":"{profile{name skills{name}}}"}' | tee /tmp/profile-result.json
-          node -e 'const r=JSON.parse(require("fs").readFileSync("/tmp/profile-result.json")); if(r.errors || !r.data?.profile?.name) process.exit(1)'
+          IMAGE=ghcr.io/saas-is-dead/daniilivanovdev
+          docker build --platform linux/amd64 --target release -t "$IMAGE:$REVISION" -t "$IMAGE:main" .
+          docker push "$IMAGE:$REVISION"
+          docker push "$IMAGE:main"

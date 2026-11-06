@@ -1,0 +1,409 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "-3"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "-2"
+        }
+      },
+      "spec": {
+        "clusterIP": "None",
+        "selector": {
+          "app": "card-postgres"
+        },
+        "ports": [
+          {
+            "port": 5432,
+            "targetPort": 5432
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "-2"
+        }
+      },
+      "spec": {
+        "serviceName": "postgres",
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "card-postgres"
+          }
+        },
+        "persistentVolumeClaimRetentionPolicy": {
+          "whenDeleted": "Retain",
+          "whenScaled": "Retain"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "card-postgres"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "terminationGracePeriodSeconds": 60,
+            "containers": [
+              {
+                "name": "postgres",
+                "image": "postgres:17.6-bookworm",
+                "imagePullPolicy": "IfNotPresent",
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "card-postgres"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "PGDATA",
+                    "value": "/var/lib/postgresql/data/pgdata"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "384Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/postgresql/data"
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+                  },
+                  "periodSeconds": 5
+                },
+                "startupProbe": {
+                  "exec": {
+                    "command": ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 36
+                }
+              }
+            ]
+          }
+        },
+        "volumeClaimTemplates": [
+          {
+            "metadata": {
+              "name": "data"
+            },
+            "spec": {
+              "accessModes": ["ReadWriteOnce"],
+              "storageClassName": "local-path",
+              "resources": {
+                "requests": {
+                  "storage": "1Gi"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "name": "card-migrate",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "-1",
+          "argocd.argoproj.io/hook": "Sync",
+          "argocd.argoproj.io/hook-delete-policy": "BeforeHookCreation,HookSucceeded",
+          "argocd.argoproj.io/sync-options": "Force=true,Replace=true"
+        }
+      },
+      "spec": {
+        "backoffLimit": 0,
+        "activeDeadlineSeconds": 300,
+        "template": {
+          "spec": {
+            "restartPolicy": "Never",
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "migrate",
+                "image": "ghcr.io/saas-is-dead/daniilivanovdev:main",
+                "imagePullPolicy": "IfNotPresent",
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "card-env"
+                    }
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "runAsUser": 1000,
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  }
+                },
+                "command": ["npm", "run", "setup", "--workspace", "apps/api"]
+              }
+            ],
+            "imagePullSecrets": [
+              {
+                "name": "ghcr-pull"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "app",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "0"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "revisionHistoryLimit": 3,
+        "progressDeadlineSeconds": 300,
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "card-web"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "card-web"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "app",
+                "image": "ghcr.io/saas-is-dead/daniilivanovdev:main",
+                "imagePullPolicy": "IfNotPresent",
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "card-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "APP_ORIGIN",
+                    "value": "https://daniilivanovdev.62.84.118.213.sslip.io"
+                  },
+                  {
+                    "name": "PORT",
+                    "value": "3000"
+                  },
+                  {
+                    "name": "CLIENT_IP_MODE",
+                    "value": "direct"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 3000
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "384Mi"
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/health/ready",
+                    "port": 3000
+                  },
+                  "timeoutSeconds": 3,
+                  "periodSeconds": 10
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/health/live",
+                    "port": 3000
+                  },
+                  "timeoutSeconds": 3,
+                  "periodSeconds": 10
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/health/live",
+                    "port": 3000
+                  },
+                  "timeoutSeconds": 3,
+                  "periodSeconds": 10,
+                  "failureThreshold": 30
+                },
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "runAsUser": 1000,
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  }
+                }
+              }
+            ],
+            "imagePullSecrets": [
+              {
+                "name": "ghcr-pull"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "app",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "0"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "card-web"
+        },
+        "ports": [
+          {
+            "port": 80,
+            "targetPort": 3000
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "postgres-only-app",
+        "namespace": "daniilivanovdev",
+        "labels": {
+          "app.kubernetes.io/name": "daniilivanovdev"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "0"
+        }
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "card-postgres"
+          }
+        },
+        "policyTypes": ["Ingress"],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {}
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 5432
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
