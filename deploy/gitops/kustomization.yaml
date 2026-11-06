@@ -4,6 +4,6 @@ resources:
   - resources.json
 images:
   - name: ghcr.io/saas-is-dead/daniilivanovdev
-    digest: sha256:908bfebe1b86461147b4a2f065c8440a2a418ea42f2574711178d9e1c0597e91
+    digest: sha256:93ba4eabd8f8da1f49ef146a3dd85081a4c34a020c35c13dc38b47d4b1dee949
     newName: ghcr.io/saas-is-dead/daniilivanovdev
     newTag: main
