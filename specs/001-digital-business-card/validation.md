@@ -279,3 +279,7 @@
 - Initial role inspection: daniil_card|f|f|f; database owner daniil_card; counts 1|49|6|4.
 - Shared infra overlay saved locally under ../infra/environments/card-shared-db;
   unrelated infra dirty work not committed/pushed. No off-host DB backup configured.
+
+- Actual automatic update confirmed: updater commit b221c8e5 changed Kustomize digest
+  from 3e94703d to 0361d8d9. Argo synced that revision, repeated migrations successfully
+  and completed deployment/app rollout. Initial pod remained ready during cold pull.

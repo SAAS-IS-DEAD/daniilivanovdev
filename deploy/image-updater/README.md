@@ -1,8 +1,10 @@
-# Image Updater (prepared, activation pending credentials)
+# Image Updater
 
 Pinned upstream: v1.4.0; vendored manifest checksum in vendor/SOURCE.txt.
 Controller overlay: namespace argocd, 10m/64Mi request, 200m/256Mi limit.
-No controller or Application has been applied to the cluster by this change.
+Controller and Application are active on k3s-02. Credentials were installed server-side.
+Live deployment details: docs/deployment.md. Bootstrap instructions below describe
+reproduction on a new cluster.
 
 Flow: main checks -> publish one release image to GHCR -> updater resolves main tag
 into a digest -> commits Kustomize image change to deploy/k3s-02 -> Argo sync.

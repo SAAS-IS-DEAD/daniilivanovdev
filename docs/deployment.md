@@ -13,10 +13,9 @@ The updater follows the main tag by digest and commits Kustomize changes to depl
 Argo CD reads that branch using the existing read-only card-repository deploy key.
 Application and migration Job share the same image and digest.
 
-The owner is preparing a separate Git write-back key. GHCR read credentials,
-application/DB secrets, database role and ingress/TLS still need provisioning.
-Controller and Application manifests are prepared but have not been activated.
-No successful live update or public rollout is claimed.
+Git write-back and GHCR read credentials are configured in Kubernetes Secrets.
+The controller and Application are active; shared DB, migrations and HTTPS have been
+verified. See the live state below.
 
 Old deploy/receive.py is a historical SSH fallback, not used by the workflow.
 No private keys or production credentials are committed.
