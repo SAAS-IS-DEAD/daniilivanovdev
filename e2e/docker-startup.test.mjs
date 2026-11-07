@@ -14,6 +14,7 @@ const env = {
   APP_ORIGIN: `http://localhost:${port}`,
   PORT: String(port),
   NODE_ENV: 'development',
+  CACHE_TTL_SECONDS: '1',
 };
 const compose = (...args) =>
   execFileSync('docker', ['compose', '-p', project, '-f', 'compose.yaml', ...args], {

@@ -12,6 +12,7 @@ export async function createTestApplication(
   module: Type,
   clock: Clock = new Clock(),
   webRoot?: string,
+  cache: { redisUrl?: string; ttlSeconds?: number } = {},
 ) {
   assertTestDatabase();
   const builder = Test.createTestingModule({
@@ -23,6 +24,8 @@ export async function createTestApplication(
     .useValue(
       loadEnvironment({
         DATABASE_URL: TEST_DATABASE_URL,
+        REDIS_URL: cache.redisUrl,
+        CACHE_TTL_SECONDS: String(cache.ttlSeconds ?? 60),
         APP_ORIGIN: 'http://localhost:3000',
         NODE_ENV: 'test',
         AUTH_RATE_KEY: 'test-key-not-for-production'.repeat(3),

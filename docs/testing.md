@@ -66,3 +66,30 @@ PostgreSQL, которую создаёт Testcontainers (без Compose setup/t
 
 Deployment configuration tests now live in infra/tests/test_card_gitops.py.
 Application workflow behaviour is checked with npm run test:ci.
+
+## Redis cache
+
+Публичные profile/list/detail запросы кешируются через CacheService/RedisStore.
+`REDIS_URL` необязателен для отдельного API; Compose и Kubernetes задают внутренний
+адрес. `CACHE_TTL_SECONDS` — 1..3600, по умолчанию 60. Без Redis или при его отказе
+чтение идёт в PostgreSQL. Readiness по-прежнему проверяет PostgreSQL.
+
+Unit-тесты проверяют hit/miss, объединение одновременных промахов, независимость
+результатов, даты/null, повреждение кеша, ошибки loader/Redis и отсутствие кеширования
+пропавших записей. Backend integration поднимает отдельную PostgreSQL через общий
+runner и собственный временный Redis 7.4.7 через Testcontainers. Проверяются HTTP/
+GraphQL-ответы на cold/warm чтениях, кеш между двумя Nest-приложениями, настоящее TTL,
+списки/детали, некорректные UUID, повреждённые данные, выключенный/недоступный Redis,
+и CLIENT PAUSE с ограничением ожидания 100 мс на Redis-операцию. Операции проверяют
+настоящие серверы; repository-spy только считает вызовы реального SQL loader.
+
+Ключи: `card:public:v1:` + имя чтения/UUID. V8 serialization сохраняет Date и null,
+GraphQL-схема/формат ответа не меняются. При смене несовместимой структуры кеша
+нужно менять версию префикса. Одновременные промахи объединяются внутри одного
+процесса, не между разными pod. PostgreSQL-ошибки и отсутствующие записи не кешируются.
+Пустые списки кешируются. Нет внутреннего L1-кеша, поэтому срок устаревания задаёт Redis.
+
+Прямые правки PostgreSQL/seed становятся видны в пределах TTL. Redis — расходуемый
+кеш без диска; рестарт приводит к cold reads. Записи используют абсолютный deadline
+истечения, чтобы отложенный SET после зависания Redis не продлевал жизнь старых данных.
+Никаких очисток рабочей БД или глобальных FLUSHALL тесты не выполняют.

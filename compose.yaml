@@ -1,4 +1,24 @@
 services:
+  redis:
+    image: redis:7.4.7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf
+    command:
+      [
+        redis-server,
+        --save,
+        "",
+        --appendonly,
+        "no",
+        --maxmemory,
+        64mb,
+        --maxmemory-policy,
+        allkeys-lru,
+      ]
+    mem_limit: 128m
+    healthcheck:
+      test: [ CMD, redis-cli, ping ]
+      interval: 2s
+      timeout: 2s
+      retries: 15
   db:
     image: postgres:17.6-bookworm
     environment:
@@ -30,6 +50,8 @@ services:
     image: business-card:local
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-card}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-card}
+      REDIS_URL: redis://redis:6379
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-60}
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       NODE_ENV: ${NODE_ENV:-development}
       PORT: "3000"

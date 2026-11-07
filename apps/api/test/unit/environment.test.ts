@@ -57,3 +57,29 @@ test('production requires HTTPS origin and auth key never defaults', () => {
     true,
   );
 });
+
+test('Redis is optional and cache TTL and URL are bounded without leaking credentials', () => {
+  assert.equal(loadEnvironment(valid).redisUrl, undefined);
+  assert.equal(loadEnvironment(valid).cacheTtlSeconds, 60);
+  assert.equal(
+    loadEnvironment({ ...valid, REDIS_URL: 'redis://localhost:6379', CACHE_TTL_SECONDS: '1' })
+      .cacheTtlSeconds,
+    1,
+  );
+  for (const patch of [
+    { REDIS_URL: 'http://secret:password@localhost' },
+    { REDIS_URL: 'redis://localhost/invalid' },
+    { CACHE_TTL_SECONDS: '0' },
+    { CACHE_TTL_SECONDS: '1.5' },
+    { CACHE_TTL_SECONDS: '3601' },
+    { CACHE_TTL_SECONDS: 'NaN' },
+  ])
+    assert.throws(
+      () => loadEnvironment({ ...valid, ...patch }),
+      (error: unknown) => {
+        assert(error instanceof Error);
+        assert(!error.message.includes('password'));
+        return true;
+      },
+    );
+});

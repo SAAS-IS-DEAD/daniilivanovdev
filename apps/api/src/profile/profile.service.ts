@@ -1,3 +1,4 @@
+import { CacheService } from '../cache/cache.service.js';
 import { Injectable } from '@nestjs/common';
 import { ProfileRepository } from './profile.repository.js';
 import { badInput } from '../common/errors.js';
@@ -9,26 +10,36 @@ function validId(id: string): string {
 }
 @Injectable()
 export class ProfileService {
-  constructor(private readonly repository: ProfileRepository) {}
+  constructor(
+    private readonly repository: ProfileRepository,
+    private readonly cache: CacheService,
+  ) {}
   profile() {
-    return this.repository.profile();
+    return this.cache.read('profile', () => this.repository.profile());
   }
   skills() {
-    return this.repository.skills();
+    return this.cache.read('skills', () => this.repository.skills());
   }
   skill(id: string) {
-    return this.repository.skill(validId(id));
+    const checked = validId(id);
+    return this.cache.read(`skill:${checked.toLowerCase()}`, () => this.repository.skill(checked));
   }
   experience() {
-    return this.repository.experience();
+    return this.cache.read('experience', () => this.repository.experience());
   }
   experienceItem(id: string) {
-    return this.repository.experienceItem(validId(id));
+    const checked = validId(id);
+    return this.cache.read(`experienceItem:${checked.toLowerCase()}`, () =>
+      this.repository.experienceItem(checked),
+    );
   }
   projects() {
-    return this.repository.projects();
+    return this.cache.read('projects', () => this.repository.projects());
   }
   project(id: string) {
-    return this.repository.project(validId(id));
+    const checked = validId(id);
+    return this.cache.read(`project:${checked.toLowerCase()}`, () =>
+      this.repository.project(checked),
+    );
   }
 }

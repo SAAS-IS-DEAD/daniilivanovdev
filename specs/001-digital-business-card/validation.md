@@ -316,3 +316,28 @@
 - Removed deployment manifests and obsolete SSH receiver/renderers from application.
   Config tests moved to infra; app retains four CI tests and image publication only.
 - Full application verify passed; final changed CI tests/Biome and infra tests passed.
+
+## Redis public-read cache — 2026-11-08
+
+- Unit tests were added first and failed on the missing cache module. Implemented
+  read-through Redis cache for all seven public profile/list/detail service reads.
+  Unit cases cover hits/misses, dates/null, independent concurrent results, shared
+  misses, corrupt entries, loader/read/write errors and uncached missing records.
+- A real Redis CLIENT PAUSE regression exposed that AbortSignal alone does not bound
+  already-sent commands. Added a separate 100ms deadline per cache operation and
+  absolute Redis expiry so delayed SET cannot extend stale snapshots after recovery.
+- Real Nest/HTTP/GraphQL + isolated PostgreSQL/Redis tests pass, including cross-app
+  sharing, true TTL expiry, ordered list/detail responses, corruption, invalid IDs,
+  missing records, slow/offline Redis and startup with unreachable Redis.
+- Redis is optional and failures use PostgreSQL; no L1 cache, mutation/admin routes
+  or HH synchronization. Cache prefix card:public:v1; TTL default 60s (1..3600).
+  Direct SQL/seed updates have bounded TTL staleness. Single-flight is per process;
+  there is no distributed lock across replicas. Schema-incompatible changes require
+  a cache namespace version bump. Redis data is ephemeral, not authoritative.
+- Redis manifests in isolated infra worktree /tmp/card-infra-redis include one pod,
+  ClusterIP only, same-namespace application-only ingress, no Redis egress, 64MB LRU
+  cache and 128Mi pod memory limit. Infra tests first failed without the Redis
+  resource, then passed (10 tests); Kustomize and live server dry-run passed.
+- Full npm run verify passed in both the working repository and isolated release
+  worktree. Redis pod is Ready via GitOps revision 7504441; an actual application-pod
+  TCP PING returned PONG through the restricted Service/NetworkPolicy.
