@@ -1,3 +1,7 @@
+import { CacheModule } from '../cache/cache.module.js';
+import { RedisStore } from '../cache/redis.store.js';
+import { ENVIRONMENT, type Environment } from '../config/environment.js';
+import { createResponseCachePlugin } from './response-cache.js';
 import { APP_FILTER } from '@nestjs/core';
 import { GraphQLExceptionFilter } from './exception-filter.js';
 import type { Request, Response } from 'express';
@@ -12,19 +16,27 @@ import { DateScalar } from './scalars.js';
 
 @Module({
   imports: [
-    GraphQLModule.forRoot({
+    GraphQLModule.forRootAsync({
       driver: ApolloDriver,
-      autoSchemaFile: true,
-      context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
-      sortSchema: true,
-      validationRules: [queryLimits],
-      graphiql: false,
-      introspection: true,
-      csrfPrevention: true,
-      allowBatchedHttpRequests: false,
-      includeStacktraceInErrorResponses: false,
-      plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true }), requestContextPlugin],
-      formatError,
+      imports: [CacheModule],
+      inject: [RedisStore, ENVIRONMENT],
+      useFactory: (store: RedisStore, environment: Environment) => ({
+        autoSchemaFile: true,
+        context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
+        sortSchema: true,
+        validationRules: [queryLimits],
+        graphiql: false,
+        introspection: true,
+        csrfPrevention: true,
+        allowBatchedHttpRequests: false,
+        includeStacktraceInErrorResponses: false,
+        plugins: [
+          ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+          requestContextPlugin,
+          createResponseCachePlugin(store, environment.cacheTtlSeconds),
+        ],
+        formatError,
+      }),
     }),
   ],
   providers: [DateScalar, { provide: APP_FILTER, useClass: GraphQLExceptionFilter }],

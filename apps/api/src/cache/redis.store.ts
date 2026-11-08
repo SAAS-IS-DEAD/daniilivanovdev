@@ -41,12 +41,12 @@ export class RedisStore implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, expiresAt?: number): Promise<void> {
     if (!this.client?.isReady) return;
     await this.bounded(
       this.client.withAbortSignal(AbortSignal.timeout(100)).set(CACHE_PREFIX + key, value, {
         // A delayed command must not give an old snapshot a new TTL after recovery.
-        PXAT: Date.now() + this.environment.cacheTtlSeconds * 1000,
+        PXAT: expiresAt ?? Date.now() + this.environment.cacheTtlSeconds * 1000,
       }),
     );
   }

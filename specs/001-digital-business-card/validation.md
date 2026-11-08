@@ -341,3 +341,33 @@
 - Full npm run verify passed in both the working repository and isolated release
   worktree. Redis pod is Ready via GitOps revision 7504441; an actual application-pod
   TCP PING returned PONG through the restricted Service/NetworkPolicy.
+
+## Normalized GraphQL response cache — 2026-11-08
+
+- Added normalization/key tests first; the initial run failed on the missing response
+  key module. Implemented a query response cache via Apollo responseForOperation,
+  reached only after ordinary document parsing/validation/complexity checks.
+- Canonical identity: print + stripIgnoredCharacters AST hash, actual selected operation,
+  coerced/defaulted variables with sorted object keys (array order preserved), schema
+  fingerprint, cache version and TTL. Memoized document hashes use WeakMap. Selection
+  order, aliases and literal contents remain significant. No field reordering is used.
+- Removed old DTO CacheService: misses now execute SQL directly and hits return the
+  ready GraphQL data. This prevents compounded TTL/staleness. Freshness deadline is
+  fixed before execution and used for Redis PXAT; hits never renew it. Payload limit
+  256KiB; errors, partial errors, absent roots and introspection are not cached.
+- Concurrent misses share encoded successful data, decoded independently per response.
+  Waiters are released on errors/shutdown or after 5s. Redis failure remains fail-open.
+- A regression test exposed Apollo invoking the hook with an unresolved operationName;
+  it first failed with Internal server error. The guard now preserves normal operation
+  resolution errors without hitting/reusing the response cache.
+- Unit and real PostgreSQL/Redis/Nest HTTP integration cover normalized warm hits that
+  skip resolver/service execution, variables/operations/aliases, schema isolation, TTL,
+  no double caching, partial errors, payload limit, real SQL failures with independent
+  request IDs, corruption, unavailable/stalled Redis and cross-app cache sharing.
+- Numeric-key regressions were first reproduced in the isolated release worktree:
+  -0 collided with 0, and non-finite custom scalar values collided with JSON null.
+  Canonicalization now preserves -0 and bypasses caching for non-JSON scalar values.
+- Full npm run verify passed in the working repository and isolated release worktree;
+  thresholds were not reduced. Local production Docker startup smoke and nine browser
+  E2E passed for the response-cache wiring. Final revision will also pass CI before
+  the publication job can release its image.
