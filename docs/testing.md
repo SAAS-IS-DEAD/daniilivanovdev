@@ -27,17 +27,18 @@ Runner отклоняет внешний TEST_DATABASE_URL; assertTestDatabase �
 
 ## Матрица поведения
 
-| Область                               | Unit / component                                                                                            | Backend integration / браузер                                            |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Конфигурация, валидация, даты, ошибки | environment, validation, scalars-errors                                                                     | HTTP errors, input rejection                                             |
-| Профиль, списки, детали               | profile-service: UUID и отсутствие записи                                                                   | profile-read, profile-relations: PostgreSQL, порядок, null, ограничения  |
-| GraphQL                               | query-limits, schema-export, metadata                                                                       | introspection, лимиты, некорректный JSON, отсутствие mutations, contract |
-| Seed                                  | seed-data: нормализация и независимость снимков                                                             | конкурентный запуск, rollback, сохранение локальных правок               |
-| HTTP, readiness, раздача SPA          | web-routing                                                                                                 | health, http-boundary, web-routing: API/ассеты не подменяются HTML       |
-| GraphQL SDK                           | api-client: заголовки, сеть, редактирование ошибок, prototype keys                                          | public-profile E2E                                                       |
-| Публичный сайт                        | profile-page, router, story-explorer: загрузка, ошибка, retry, маршруты, контакты, поиск, безопасные ссылки | public-profile E2E 360/1440 и touch                                      |
-| Персонаж                              | pixel-guide: кадры, речь, таймеры, GIF/still, reduced motion                                                | hover, pause и reduced motion E2E                                        |
-| Арканоид                              | skill-breaker + component: физика, волны, попытки, клавиатура, пауза, cleanup                               | mouse collision и настоящий touch drag E2E                               |
+| Область                               | Unit / component                                                                                            | Backend integration / браузер                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Конфигурация, валидация, даты, ошибки | environment, validation, scalars-errors                                                                     | HTTP errors, input rejection                                                                    |
+| Профиль, списки, детали               | profile-service: UUID и отсутствие записи                                                                   | profile-read, profile-relations: PostgreSQL, порядок, null, ограничения                         |
+| GraphQL                               | query-limits, schema-export                                                                                 | introspection, лимиты, некорректный JSON, отсутствие mutations, contract                        |
+| Выборка полей профиля                 | selected-profile-fields: aliases, fragments, директивы и метаполя                                           | profile-selection: HTTP/GraphQL + SQL-события настоящей PostgreSQL; 1/100 записей, README query |
+| Seed                                  | seed-data: нормализация и независимость снимков                                                             | конкурентный запуск, rollback, сохранение локальных правок                                      |
+| HTTP, readiness, раздача SPA          | web-routing                                                                                                 | health, http-boundary, web-routing: API/ассеты не подменяются HTML                              |
+| GraphQL SDK                           | api-client: заголовки, сеть, редактирование ошибок, prototype keys                                          | public-profile E2E                                                                              |
+| Публичный сайт                        | profile-page, router, story-explorer: загрузка, ошибка, retry, маршруты, контакты, поиск, безопасные ссылки | public-profile E2E 360/1440 и touch                                                             |
+| Персонаж                              | pixel-guide: кадры, речь, таймеры, GIF/still, reduced motion                                                | hover, pause и reduced motion E2E                                                               |
+| Арканоид                              | skill-breaker + component: физика, волны, попытки, клавиатура, пауза, cleanup                               | mouse collision и настоящий touch drag E2E                                                      |
 
 ## Покрытие
 

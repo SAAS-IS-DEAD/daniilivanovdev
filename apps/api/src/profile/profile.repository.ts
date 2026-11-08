@@ -1,6 +1,7 @@
 import type { Prisma } from '../generated/prisma/client.js';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { ProfileFields } from './profile-fields.js';
 
 export const contentOrder = [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }] as const;
 export const skillSelect = { id: true, name: true, sortOrder: true } as const;
@@ -33,11 +34,48 @@ export const profileSelect = {
   projects: { orderBy: [...contentOrder], select: projectSelect },
 } satisfies Prisma.ProfileSelect;
 
+function selectedScalars(template: Record<string, unknown>, fields: ProfileFields) {
+  const select: Record<string, true> = {};
+  for (const [name, value] of Object.entries(template)) {
+    if (value === true && Object.hasOwn(fields, name)) select[name] = true;
+  }
+  // Prisma needs a nonempty select, including for __typename-only selections.
+  return Object.keys(select).length ? select : { id: true as const };
+}
+
+function selectedProfile(fields: ProfileFields): Prisma.ProfileSelect {
+  const select: Prisma.ProfileSelect = selectedScalars(profileSelect, fields);
+  if (fields.links)
+    select.links = {
+      ...profileSelect.links,
+      select: selectedScalars(profileSelect.links.select, fields.links),
+    };
+  if (fields.skills)
+    select.skills = {
+      ...profileSelect.skills,
+      select: selectedScalars(skillSelect, fields.skills),
+    };
+  if (fields.experience)
+    select.experience = {
+      ...profileSelect.experience,
+      select: selectedScalars(experienceSelect, fields.experience),
+    };
+  if (fields.projects)
+    select.projects = {
+      ...profileSelect.projects,
+      select: selectedScalars(projectSelect, fields.projects),
+    };
+  return select;
+}
+
 @Injectable()
 export class ProfileRepository {
   constructor(private readonly db: PrismaService) {}
-  profile() {
-    return this.db.profile.findUnique({ where: { id: 1 }, select: profileSelect });
+  profile(fields?: ProfileFields) {
+    return this.db.profile.findUnique({
+      where: { id: 1 },
+      select: fields ? selectedProfile(fields) : profileSelect,
+    });
   }
   skills() {
     return this.db.skill.findMany({

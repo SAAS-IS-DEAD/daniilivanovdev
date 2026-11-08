@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ProfileRepository } from './profile.repository.js';
 import { badInput } from '../common/errors.js';
+import type { ProfileFields } from './profile-fields.js';
 
 function validId(id: string): string {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
@@ -10,8 +11,8 @@ function validId(id: string): string {
 @Injectable()
 export class ProfileService {
   constructor(private readonly repository: ProfileRepository) {}
-  profile() {
-    return this.repository.profile();
+  profile(fields?: ProfileFields) {
+    return this.repository.profile(fields);
   }
   skills() {
     return this.repository.skills();

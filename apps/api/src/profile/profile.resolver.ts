@@ -1,12 +1,14 @@
-import { Args, ID, Query, Resolver } from '@nestjs/graphql';
+import { Args, ID, Info, Query, Resolver } from '@nestjs/graphql';
+import type { GraphQLResolveInfo } from 'graphql';
+import { selectedProfileFields } from '../graphql/selected-profile-fields.js';
 import { ProfileService } from './profile.service.js';
 import { Experience, Profile, Project, Skill } from './profile.types.js';
 
 @Resolver(() => Profile)
 export class ProfileResolver {
   constructor(private readonly service: ProfileService) {}
-  @Query(() => Profile, { nullable: true }) profile() {
-    return this.service.profile();
+  @Query(() => Profile, { nullable: true }) profile(@Info() info: GraphQLResolveInfo) {
+    return this.service.profile(selectedProfileFields(info));
   }
   @Query(() => [Skill]) skills() {
     return this.service.skills();

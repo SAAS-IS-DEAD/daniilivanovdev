@@ -84,9 +84,9 @@ test('normalized response cache skips GraphQL execution, shares across apps, exp
     let executions = 0;
     const service = app.get(ProfileService);
     const original = service.profile.bind(service);
-    service.profile = () => {
+    service.profile = (...args) => {
       executions++;
-      return original();
+      return original(...args);
     };
     const first = await send();
     assert.equal(first.body.errors, undefined);
