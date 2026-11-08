@@ -1,4 +1,3 @@
-import { isIP } from 'node:net';
 import { Global, Module } from '@nestjs/common';
 
 export interface Environment {
@@ -7,10 +6,6 @@ export interface Environment {
   cacheTtlSeconds: number;
   appOrigin: string;
   port: number;
-  production: boolean;
-  authRateKey: string;
-  clientIpMode: 'direct' | 'trusted-proxy';
-  trustedProxyCidrs: string[];
 }
 export const ENVIRONMENT = Symbol('ENVIRONMENT');
 
@@ -60,36 +55,12 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): Enviro
   }
   const port = Number(source.PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) fail('PORT');
-  const authRateKey = source.AUTH_RATE_KEY ?? '';
-  if (authRateKey.length < 32) fail('AUTH_RATE_KEY');
-  const clientIpMode = source.CLIENT_IP_MODE ?? 'direct';
-  if (clientIpMode !== 'direct' && clientIpMode !== 'trusted-proxy') fail('CLIENT_IP_MODE');
-  const trustedProxyCidrs = (source.TRUSTED_PROXY_CIDRS ?? '')
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean);
-  if (clientIpMode === 'trusted-proxy' && trustedProxyCidrs.length === 0)
-    fail('TRUSTED_PROXY_CIDRS');
-  for (const entry of trustedProxyCidrs) {
-    const [ip, prefix, extra] = entry.split('/');
-    const family = isIP(ip ?? '');
-    if (!family || extra !== undefined) fail('TRUSTED_PROXY_CIDRS');
-    if (
-      prefix !== undefined &&
-      (!/^\d+$/.test(prefix) || Number(prefix) < 1 || Number(prefix) > (family === 4 ? 32 : 128))
-    )
-      fail('TRUSTED_PROXY_CIDRS');
-  }
   return {
     databaseUrl,
     redisUrl,
     cacheTtlSeconds,
     appOrigin,
     port,
-    production,
-    authRateKey,
-    clientIpMode: clientIpMode as Environment['clientIpMode'],
-    trustedProxyCidrs,
   };
 }
 

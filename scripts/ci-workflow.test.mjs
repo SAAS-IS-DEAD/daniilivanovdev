@@ -46,10 +46,7 @@ test('E2E configuration script writes valid separate environment lines', () => {
   try {
     execFileSync(process.execPath, ['--input-type=module', '-e', js], { cwd });
     const env = readFileSync(join(cwd, '.env'), 'utf8');
-    assert.match(
-      env,
-      /^POSTGRES_PASSWORD=[a-f0-9]+\nAUTH_RATE_KEY=[a-f0-9]+\nAPP_ORIGIN=http:\/\/localhost:3000\n$/,
-    );
+    assert.match(env, /^POSTGRES_PASSWORD=[a-f0-9]+\nAPP_ORIGIN=http:\/\/localhost:3000\n$/);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -61,4 +58,63 @@ test('application CI publishes images without infrastructure access', () => {
   assert.match(commands, /--target release/);
   assert.doesNotMatch(commands, /\bssh\b|\bkubectl\b/);
   assert.equal(workflow.jobs.publish.permissions.packages, 'write');
+});
+
+test('local reports, credentials and generated files stay outside Git', () => {
+  const protectedPaths = [
+    'output/pdf/presentation.pdf',
+    'tmp/pdfs/preview.png',
+    'artifacts/security/report.json',
+    '.secrets/password.txt',
+    '.deploy-secrets/config.json',
+    '.env',
+    'apps/api/.env.local',
+    '.npmrc',
+    'private.pem',
+    'credentials.p12',
+    'kubeconfig.local',
+    '.kube/config',
+    'output/.DS_Store',
+  ];
+  const ignored = execFileSync('git', ['check-ignore', '--no-index', '--stdin'], {
+    input: protectedPaths.join('\n'),
+    encoding: 'utf8',
+  })
+    .trim()
+    .split('\n');
+  assert.deepEqual(ignored.sort(), [...protectedPaths].sort());
+  const examples = execFileSync('git', ['ls-files', '--', '.env.example', 'apps/api/src/main.ts'], {
+    encoding: 'utf8',
+  })
+    .trim()
+    .split('\n');
+  assert.deepEqual(examples, ['.env.example', 'apps/api/src/main.ts']);
+  const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
+    .split('\0')
+    .filter(Boolean);
+  const forbidden = tracked.filter((path) => {
+    const basename = path.split('/').at(-1);
+    return (
+      /^(output|tmp|artifacts|\.deploy-secrets|\.secrets|\.kube)\//.test(path) ||
+      /(^|\/)(node_modules|dist|dist-test|coverage)\//.test(path) ||
+      (basename !== '.env.example' && /^\.env(?:\.|$)/.test(basename)) ||
+      /(?:\.(pem|key|p12|pfx)$|(?:^|\/)(?:\.npmrc|kubeconfig(?:\..*)?)$)/.test(path)
+    );
+  });
+  assert.deepEqual(forbidden, [], 'Tracked local/private files must be removed from Git');
+});
+
+test('publication is gated by a redacted full-history secret scan', () => {
+  const job = workflow.jobs.secrets;
+  assert(job, 'Secret scanning job is required');
+  assert.equal(
+    job.steps.find((step) => step.uses === 'actions/checkout@v4').with['fetch-depth'],
+    0,
+  );
+  const commands = job.steps.map((step) => step.run ?? '').join('\n');
+  assert.match(commands, /sha256sum --check/);
+  assert.match(commands, /gitleaks"?\s+git\b/);
+  assert.match(commands, /--redact=100/);
+  assert.match(commands, /--log-opts="--all --full-history"/);
+  assert(workflow.jobs.publish.needs.includes('secrets'));
 });

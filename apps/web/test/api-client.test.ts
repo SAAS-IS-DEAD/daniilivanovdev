@@ -1,12 +1,11 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createApi, setCsrfToken, sdk } from '../src/api/client';
+import { createApi, sdk } from '../src/api/client';
 import { GraphQLClient } from 'graphql-request';
 afterEach(() => {
-  setCsrfToken(null);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
-test('uses fresh CSRF token and never exposes GraphQL error variables', async () => {
+test('public queries succeed without CSRF tokens and never expose GraphQL error variables', async () => {
   const fetcher = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify({ data: { profile: null } }), {
@@ -14,12 +13,8 @@ test('uses fresh CSRF token and never exposes GraphQL error variables', async ()
       }),
   );
   const api = createApi(new GraphQLClient('http://localhost/graphql', { fetch: fetcher }));
-  setCsrfToken('first');
-  await api.GetProfile();
-  setCsrfToken('second');
-  await api.GetProfile();
-  expect(new Headers(fetcher.mock.calls[0]![1].headers).get('X-CSRF-Token')).toBe('first');
-  expect(new Headers(fetcher.mock.calls[1]![1].headers).get('X-CSRF-Token')).toBe('second');
+  await expect(api.GetProfile()).resolves.toEqual({ profile: null });
+  expect(new Headers(fetcher.mock.calls[0]![1].headers).get('X-CSRF-Token')).toBeNull();
   fetcher.mockImplementation(
     async () =>
       new Response(
@@ -39,7 +34,7 @@ test('uses fresh CSRF token and never exposes GraphQL error variables', async ()
     code: 'INTERNAL_SERVER_ERROR',
     message: 'Не удалось выполнить запрос',
   });
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(2);
   expect(log).not.toHaveBeenCalled();
 });
 test('transport failure is normalized with one request only', async () => {
@@ -61,6 +56,7 @@ test('browser SDK resolves endpoint against the current origin', async () => {
   vi.stubGlobal('fetch', fetcher);
   await expect(sdk.GetProfile()).resolves.toEqual({ profile: null });
   expect(String(fetcher.mock.calls[0]?.[0])).toBe(new URL('/graphql', window.location.origin).href);
+  expect(fetcher.mock.calls[0]?.[1].credentials).toBe('omit');
 });
 
 test.each([

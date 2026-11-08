@@ -17,3 +17,32 @@ artifacts
 .deploy-secrets
 
 **/__pycache__
+
+# Never include local reports or credentials in image build context
+output
+tmp
+.secrets
+.npmrc
+.kube
+kubeconfig
+kubeconfig.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/id_rsa
+**/id_ed25519
+**/.DS_Store
+**/*.swp
+**/*.swo
+**/*~
+
+# Nested local environments and credential directories
+**/.env
+**/.env.*
+**/.secrets
+**/.deploy-secrets
+**/.npmrc
+**/.kube
+**/kubeconfig
+**/kubeconfig.*

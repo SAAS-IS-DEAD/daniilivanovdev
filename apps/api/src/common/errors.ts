@@ -6,9 +6,6 @@ export function badInput(path: string, message: string): never {
     extensions: { code: 'BAD_USER_INPUT', fields: [{ path, message }] },
   });
 }
-export function domainError(code: string, message: string): never {
-  throw new GraphQLError(message, { extensions: { code } });
-}
 const publicCodes = new Set([
   'BAD_USER_INPUT',
   'UNAUTHENTICATED',

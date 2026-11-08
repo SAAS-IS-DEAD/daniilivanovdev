@@ -67,6 +67,13 @@ PostgreSQL, которую создаёт Testcontainers (без Compose setup/t
 Deployment configuration tests now live in infra/tests/test_card_gitops.py.
 Application workflow behaviour is checked with npm run test:ci.
 
+## Нагрузочные тесты k6
+
+Сценарии на TypeScript, режимы smoke/load/stress и параметры запуска описаны в
+[load/README.md](../load/README.md). `npm run test:load:integration` проверяет
+настоящий k6 против Nest API и PostgreSQL, созданной Testcontainers; нужен k6.
+Unit-проверки конфигурации и ответов включены в `test:unit` и `verify`.
+
 ## Redis response cache
 
 Публичные GraphQL query кешируются после парсинга/валидации и до выполнения

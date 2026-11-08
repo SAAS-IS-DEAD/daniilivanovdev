@@ -16,3 +16,23 @@ artifacts/
 .deploy-secrets/
 
 __pycache__/
+
+# Local deliverables, scratch files and credentials
+/output/
+/tmp/
+.secrets/
+.npmrc
+.kube/
+kubeconfig
+kubeconfig.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.swp
+*.swo
+*~
+Thumbs.db
+desktop.ini

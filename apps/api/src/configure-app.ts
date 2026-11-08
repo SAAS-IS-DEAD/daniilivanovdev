@@ -30,7 +30,6 @@ export function configureApp(app: INestApplication): void {
   });
   app.enableCors({
     origin: environment.appOrigin,
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'X-App-Request', 'X-CSRF-Token', 'Apollo-Require-Preflight'],
+    allowedHeaders: ['Content-Type', 'Apollo-Require-Preflight'],
   });
 }

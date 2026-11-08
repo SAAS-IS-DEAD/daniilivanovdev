@@ -7,7 +7,8 @@ import { withTestDatabase } from './container-lifecycle.js';
 import { assertTestDatabase } from './database.js';
 
 const coverage = process.argv.includes('--coverage');
-if (process.argv.slice(2).some((arg) => arg !== '--coverage'))
+const loadSmoke = process.argv.includes('--load-smoke');
+if (process.argv.slice(2).some((arg) => !['--coverage', '--load-smoke'].includes(arg)))
   throw new Error('Unknown test runner argument');
 const abort = new AbortController();
 const interrupt = () => abort.abort();
@@ -54,7 +55,11 @@ try {
       assertTestDatabase(env);
       const migration = await runNode(['dist-test/test/helpers/migrate.js'], env);
       if (migration !== 0) return migration;
-      const groups = coverage ? ['unit', 'integration', 'contract'] : ['integration'];
+      const groups = loadSmoke
+        ? ['load']
+        : coverage
+          ? ['unit', 'integration', 'contract']
+          : ['integration'];
       const files = (
         await Promise.all(
           groups.map(async (group) =>

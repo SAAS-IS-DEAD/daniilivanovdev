@@ -17,7 +17,6 @@ CMD ["npm", "run", "setup", "--workspace", "apps/api"]
 
 FROM dependencies AS production-dependencies
 RUN npm prune --omit=dev --no-audit --no-fund
-RUN node --input-type=module -e "import {hash,verify,argon2id} from 'argon2'; if (!await verify(await hash('build-check', {type:argon2id}), 'build-check')) process.exit(1)"
 
 FROM node:24.22.2-bookworm-slim AS runtime
 WORKDIR /app

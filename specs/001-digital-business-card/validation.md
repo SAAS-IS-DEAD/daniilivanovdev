@@ -174,7 +174,7 @@
 
 ## Изменение объёма: hh.ru вместо админки — 2026-11-04
 
-- Источник владельца: https://hh.ru/resume/a08dab6aff11599fcd0039ed1f54436e6f5471
+- Источник владельца: приватная ссылка hh.ru (удалена из текущей документации)
 - Один HTTP GET без авторизации вернул 403 text/html (title HeadHunter), а не данные
   резюме. Web open также не смог открыть ссылку. Браузерный host недоступен.
   Нельзя заключить, что ссылка недоступна владельцу или всем посетителям.
@@ -317,6 +317,68 @@
   Config tests moved to infra; app retains four CI tests and image publication only.
 - Full application verify passed; final changed CI tests/Biome and infra tests passed.
 
+## k6 TypeScript load scenarios — 2026-11-07
+
+- Added a read-only public-profile scenario using the exact frontend GetProfile query.
+  Modes: smoke (5 iterations), load (3 minutes, default 20 iterations/s), stress
+  (5 minutes, default 20/40/80 iterations/s). Each iteration is one API request.
+- Configuration/response unit checks were introduced first and failed because the
+  support module did not exist; all five tests now pass. Cases include empty and
+  populated relations, nullable fields, malformed JSON/data, GraphQL errors despite
+  HTTP 200, invalid modes/origins/rates and VU allocation boundaries.
+- Real k6 v1.7.1 smoke against Nest/HTTP/GraphQL and a fresh Testcontainers PostgreSQL
+  passed. The same test first confirms a nonzero k6 exit for an absent profile,
+  then creates a profile with all four relations and confirms successful checks.
+  Testcontainers applies migrations and removes the isolated database afterwards.
+- All three configurations passed `k6 inspect`. Full `npm run verify` passed,
+  including build, Biome, type checking, backend unit/integration/contract coverage,
+  frontend coverage, CI workflow checks and load-support unit tests.
+- Load/stress were not run against the deployed website: no capacity or latency
+  claim is made. The initial p95/p99 budgets are configurable, not measured SLOs.
+  This scenario covers the main public API read, not browser rendering/assets or
+  every standalone GraphQL list/detail query. No browser interaction was changed.
+- The real-k6 integration command is separate from verify and requires installed
+  k6 plus Docker; long performance runs are deliberately separate from coverage.
+
+## Production capacity search — 2026-11-07
+
+- Owner explicitly authorized load against https://daniil-ivanov.dev. Added a bounded
+  maximum.ts entrypoint and test:load:maximum command; production GetProfile is read-only.
+  k6 inspect and npm run verify passed. No browser interaction changed.
+- Initial step test stopped automatically at 100 RPS when cumulative p95 crossed 2s.
+  A follow-up with 300 preallocated VU held 60 RPS for 45s (request-cohort p95 383ms,
+  no errors/drops), then degraded at 75 RPS (cohort p95 ~6s, 17 timeouts, 165 drops).
+  Follow-up was manually interrupted; the 90-RPS hold did not run.
+- Final readiness/homepage returned 200 and strict GraphQL smoke passed. No k6 process
+  remains. Working database was neither seeded nor modified.
+- Raw samples, summaries, PNG/SVG/PDF charts, CSV and a methodology/limitations report
+  are saved locally under artifacts/k6-max-20261107 (git-ignored performance artifacts).
+  Request-start cohorts attribute late timeouts to their originating hold stage; timeline
+  charts use completion-time windows and omit setup. Production resource telemetry was
+  unavailable: observed instability cannot identify the limiting component or establish
+  a universal maximum. 45s holds do not establish long-term capacity.
+
+### 2026-11-08 — Grafana и мониторинг в соседнем infra
+
+- Изменения приложения не требовались. Конфигурация и реализация коллектора:
+  `../infra/environments/k3s-02/monitoring/`, `../infra/scripts/card-metrics.py`.
+- Node 24.22.2, `npm run verify` — PASS, включая coverage, integration/contract
+  с отдельной PostgreSQL Testcontainers. TEST_DATABASE_URL не задавался.
+- Infra: 9 unit/конфигурационных тестов — PASS; kustomize и promtool — PASS.
+  Сначала зафиксирован красный тест отсутствующего коллектора, затем зелёные
+  проверки классификации запросов, границ, ошибочных строк, partial line,
+  рестарта, ротации, повторного чтения и повреждённого состояния.
+- HTTPS smoke Grafana — PASS: health, login redirect, JS bundle, оба дашборда,
+  каждый PromQL запрос вернул живые данные. Проверены scrape/probe success,
+  свежесть коллектора. Живой nginx smoke подтвердил +1 за один просмотр,
+  исключение Grafana/probe и отсутствие повторного счёта.
+- Ограничения: просмотры включают ботов, это не уникальные посетители;
+  история начинается с установки. HTTPS probe идёт с той же ноды, независимый
+  внешний монитор не настроен. Визуальный браузерный smoke недоступен:
+  computer-use browser host не подключён, HTTP smoke выполнен.
+- При rollout k3s один раз перезапустился после задержек etcd и потери
+  leader lease. Восстановился, сайт HTTP 200; добавлена панель PSI I/O.
+
 ## Redis public-read cache — 2026-11-08
 
 - Unit tests were added first and failed on the missing cache module. Implemented
@@ -341,6 +403,63 @@
 - Full npm run verify passed in both the working repository and isolated release
   worktree. Redis pod is Ready via GitOps revision 7504441; an actual application-pod
   TCP PING returned PONG through the restricted Service/NetworkPolicy.
+- Deployment completed: application commit c05e597, infra cache commit 7504441,
+  automatic digest update d3a8f93; image sha256:ed13dfbbd2fb892b2821b44042183729076cb3fa0eb3d1c4bdd2812b5a371797.
+  App and Redis pods Ready; Argo Synced/Healthy. App and infra GitHub CI succeeded.
+- Local production Docker startup smoke and all nine Playwright E2E passed, including
+  repeat setup and persisted SQL edits with a short isolated cache TTL.
+- Production full-GetProfile smoke passed all checks. Redis counters moved from
+  0 hits/0 misses to 5 hits/1 miss: one cold read followed by five cache hits.
+  Profile key exists with TTL 56 seconds at inspection. These six requests prove
+  wiring/cache reuse, not an improvement in maximum load capacity; stress was not rerun.
+  Proof logs are in artifacts/redis-cache-20261108 (local, git-ignored).
+
+### 2026-11-08 — Самые долгие HTTP-запросы в Grafana
+
+- Убрана карточка «Сайт доступен сейчас» с boolean true/false. Сохранены
+  процент аптайма и график истории. Добавлена таблица top-10 запросов за 24h:
+  время UTC, метод, путь без query string, статус и полная длительность nginx.
+- Сначала новые тесты падали из-за отсутствия timing-поведения, затем 6 тестов
+  коллектора — PASS: top-20/порядок, сохранение/повторное чтение, истечение,
+  старый лог без timing, NaN/ошибки/отрицательные значения/ноль, POST и 5xx,
+  исключения probe/Grafana, экранирование кавычек, слэшей и control characters.
+- `npm run verify` — PASS на Node 24.22.2; отдельная PostgreSQL Testcontainers,
+  TEST_DATABASE_URL не задавался. Kustomize render и promtool check metrics — PASS.
+- Сбор длительностей начат после обновления nginx; время включает отправку
+  ответа клиенту. Таблица показывает текущее окно 24h независимо от выбранного
+  диапазона графиков. Максимум 20 записей в состоянии коллектора.
+- Browser host по-прежнему недоступен; проверка через API Grafana выполняет
+  panel queries и проверяет реальные duration values и labels для преобразований
+  labelsToFields/merge. Визуальный браузерный smoke не выполнен.
+- Итоговый HTTP smoke после rollout — PASS: удалённая карточка отсутствует,
+  Grafana возвращает значения длительностей и все labels для таблицы; запросы
+  всех панелей обоих дашбордов возвращают живые данные. Все monitoring Pods Ready.
+
+## Repeated capacity search with Redis — 2026-11-08
+
+- Original deployment/image and full frontend GetProfile query retained. Workstation
+  external-HTTPS run hit p95 2.14s at only 25 RPS while API used ~35m CPU. Server probes
+  were ~14ms HTTPS / ~4ms Service, so this path could not establish backend capacity.
+- Ran temporary k6 1.7.1 Jobs in the app namespace against the same public HTTPS domain,
+  with resource limits and simultaneous cgroup/pod telemetry. Main stages 25/50/75/100
+  completed; 150 RPS stopped at the 2s guard (hold cohort p95 2.80s, ~131 completed RPS,
+  169 dropped iterations). API quota remained 500m; k6 was raised from 500m to 1 CPU.
+- Refinement used 1 CPU for k6 from start. Full 45s holds: 115 RPS p95 371ms, 125 RPS
+  p95 1255ms, 135 RPS p95 1051ms. At 145 RPS the run stopped after ~14s of hold, p95
+  2219ms, ~136 completed RPS, 30 drops. No HTTP/GraphQL/response-check errors in either
+  server-origin run. A completed hold is not proof of long-term queue stability.
+- Observed throughput ceiling ~130–135 RPS with this workload and 500m API quota;
+  115 RPS is the highest tested target meeting the initial p95<500ms budget. Refinement
+  API peaked around 494m with throttling, k6 ~466m against its 1-CPU limit. Redis used
+  ~20m, no evictions; between snapshots its hit/miss increments were 29799/10.
+- Do not interpret these as a controlled before/after Redis speedup: the generator
+  location changed to eliminate the noisy workstation network. Co-location and 45s
+  holds limit capacity/SLO conclusions. Graphs include actual vs offered RPS and CPU.
+- Both temporary Jobs/ConfigMaps and their pods were removed. App/Redis remain Ready
+  with zero restarts; public readiness/homepage return 200 and server-origin GraphQL
+  probes return valid profiles. No application code or permanent infra settings changed.
+- Raw metrics, k6 summaries, exact manifests/scripts, telemetry, CSV and PNG/SVG/PDF
+  graphs plus methodology report: artifacts/k6-cache-max-20261108 (git-ignored).
 
 ## Normalized GraphQL response cache — 2026-11-08
 
@@ -371,6 +490,19 @@
   thresholds were not reduced. Local production Docker startup smoke and nine browser
   E2E passed for the response-cache wiring. Final revision will also pass CI before
   the publication job can release its image.
+- Production deployment succeeded: app b1bac1a, image d38eb3a6..., automatic infra
+  update e20de2f, Argo Synced/Healthy. GitHub CI and final-head browser E2E passed.
+  Argo retried the hook after a k3s restart/image-pull delay; old API remained Ready.
+- Live HTTPS probes confirmed one normalized cache key for two formatting variants,
+  equal data, distinct request IDs and TTL decreasing 59856→59732ms without rewrites.
+- A bounded cluster-origin HTTPS/GetProfile sanity test (15s ramp + 45s at 150 RPS)
+  passed: full-run p95 173.47ms, p99 290.32ms, no errors/drops, API limit still 500m;
+  sampled API peak ~378m, generator ~531m of 1 CPU. Not a new maximum/SLO capacity claim.
+  Raw cohort boundaries have a small first-arrival offset; executor exit 0 and full-run
+  summary/logs are authoritative. p99 is available in threshold console output, not the
+  default summary exporter. Exact speedup ratios across different windows are not claimed.
+- Temporary benchmark resources removed; app/Redis Ready, public readiness 200.
+  Proof, scripts, raw metrics, charts and limitations: artifacts/response-cache-20261108.
 
 ## 2026-11-08 — компактные и кешируемые спрайты
 
@@ -407,3 +539,44 @@ Pillow/NumPy вне продуктовой сборки; CI проверяет �
 проектом, PostgreSQL и Redis. Дополнительно проверены main preload без двойной
 загрузки, hash URL, WebP decode/размер, игровой GIF и WebP при паузе; размеры
 1246×1263 и 1774×887 сохранены. Тестовые контейнеры и volume удалены в finally.
+
+### 2026-11-08 — Удаление dead code и остатков отменённой авторизации
+
+- Поиск ссылок в production, тестах, Docker/Compose/CI подтвердил отсутствие
+  потребителей Clock, domainError и CSRF token setter. Удалены Clock и пустое
+  override его provider в helper, domainError и его единственный test-only вызов,
+  CSRF state/setter и служебный X-App-Request. Клиент публичного API не отправляет
+  cookies; CORS больше не включает credentials и старые auth-заголовки.
+- AUTH_RATE_KEY, CLIENT_IP_MODE, TRUSTED_PROXY_CIDRS больше не участвуют в
+  запуске; удалены из Compose, .env.example, helper, CI и Docker smoke fixtures.
+  Старые переменные в окружении игнорируются. Проверка HTTPS в production сохранена.
+- Убраны прямые зависимости argon2, proxy-addr, class-transformer, class-validator,
+  @types/proxy-addr и проверка неиспользуемого argon2 в Dockerfile. Транзитивные
+  зависимости других библиотек не удалялись принудительно. Lockfile обновлён npm.
+- Удалены одинаковый повтор overrides Biome и демонстрационный metadata.test.ts,
+  проверявший только собственные fixture-классы. Настоящий Nest wiring проверен
+  интеграцией и чистым Docker startup. Coverage thresholds не менялись.
+- Сначала unit-регрессии упали на обязательном AUTH_RATE_KEY и credentials=include;
+  после изменений npm run verify — PASS: build/Biome/types, backend unit/integration/
+  contract, frontend component tests, coverage, CI-script tests и load unit.
+- Docker app/setup пересобраны; изолированный e2e/docker-startup.test.mjs — PASS,
+  включая все 11 браузерных E2E, чистый startup без auth secret, повторный setup,
+  сохранность изменений при restart и отказ старта при ошибке setup. PostgreSQL
+  для интеграции — отдельная Testcontainers; Compose smoke использовал собственный
+  project/volume и удалил его в finally. Рабочая БД не использовалась.
+- Изменения Redis/WebP из исходного рабочего дерева сохранены. Валидация seed,
+  Prisma/SDK generation, Nest modules и исходные изображения не считались dead code.
+
+## 2026-11-08 — гигиена репозитория и аудит публикации
+
+Добавлены исключения Git/Docker для локальных PDF/отчётов, временных файлов и
+распространённых файлов доступа. Пользовательские PDF/результаты прогонов сохранены
+в ignored-директориях; найденный OS/Python cache удалён. Secret scan всей Git-истории
+добавлен в обязательные CI gates; checksum скачанного Gitleaks проверяется.
+
+TDD: новые проверки ignore и secret-scan job сначала упали; после изменений
+прошли полный npm run verify и 11 Docker E2E с отдельными PostgreSQL/Redis.
+Gitleaks и дополнительный анализ blob objects не нашли рабочих секретов.
+Прямые HH URL убраны из текущих документов, но остаются в истории. Данные
+портфолио и авторские email не обезличены; ограничения и область проверки
+описаны в docs/publication-audit.md. Публичность GitHub не менялась.

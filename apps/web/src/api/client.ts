@@ -1,10 +1,6 @@
 import { ClientError, GraphQLClient } from 'graphql-request';
 import { getSdk } from './generated/sdk';
 
-let csrfToken: string | null = null;
-export function setCsrfToken(value: string | null) {
-  csrfToken = value;
-}
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
@@ -50,10 +46,7 @@ function normalizeError(error: unknown): ApiError {
 export function createApi(client: GraphQLClient) {
   return getSdk(client, async (action) => {
     try {
-      return await action({
-        'X-App-Request': 'web',
-        ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-      });
+      return await action();
     } catch (error) {
       // ClientError contains request variables; never retain it as cause or log it.
       throw normalizeError(error);
@@ -61,5 +54,5 @@ export function createApi(client: GraphQLClient) {
   });
 }
 export const sdk = createApi(
-  new GraphQLClient(new URL('/graphql', window.location.origin).href, { credentials: 'include' }),
+  new GraphQLClient(new URL('/graphql', window.location.origin).href, { credentials: 'omit' }),
 );

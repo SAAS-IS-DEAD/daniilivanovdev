@@ -29,7 +29,7 @@ test('normalized response cache skips GraphQL execution, shares across apps, exp
   let second: typeof app;
   try {
     await redis.connect();
-    app = await createTestApplication(ProfileApiTestModule, undefined, undefined, {
+    app = await createTestApplication(ProfileApiTestModule, undefined, {
       redisUrl,
       ttlSeconds: 2,
     });
@@ -109,7 +109,7 @@ test('normalized response cache skips GraphQL execution, shares across apps, exp
     assert.equal(warm.headers['access-control-allow-origin'], 'http://localhost:3000');
     assert((await redis.pTTL(fullKey)) < initialTtl - 50, 'a hit must not extend TTL');
     await db.profile.update({ where: { id: 1 }, data: { name: 'Updated' } });
-    second = await createTestApplication(ProfileApiTestModule, undefined, undefined, {
+    second = await createTestApplication(ProfileApiTestModule, undefined, {
       redisUrl,
       ttlSeconds: 2,
     });
@@ -209,7 +209,7 @@ test('normalized response cache skips GraphQL execution, shares across apps, exp
 
 test('an unreachable Redis does not block startup or GraphQL availability', async () => {
   const started = performance.now();
-  const app = await createTestApplication(ProfileApiTestModule, undefined, undefined, {
+  const app = await createTestApplication(ProfileApiTestModule, undefined, {
     redisUrl: 'redis://127.0.0.1:1',
   });
   try {

@@ -55,9 +55,6 @@ services:
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       NODE_ENV: ${NODE_ENV:-development}
       PORT: "3000"
-      AUTH_RATE_KEY: ${AUTH_RATE_KEY:?Set AUTH_RATE_KEY in .env}
-      CLIENT_IP_MODE: ${CLIENT_IP_MODE:-direct}
-      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
     ports:
       - "127.0.0.1:${PORT:-3000}:3000"
     depends_on:

@@ -10,7 +10,6 @@ const env = {
   POSTGRES_USER: 'card',
   POSTGRES_DB: 'card',
   POSTGRES_PASSWORD: randomBytes(24).toString('hex'),
-  AUTH_RATE_KEY: randomBytes(32).toString('hex'),
   APP_ORIGIN: `http://localhost:${port}`,
   PORT: String(port),
   NODE_ENV: 'development',

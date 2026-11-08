@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { GraphQLError, Kind } from 'graphql';
 import { DateScalar } from '../../src/graphql/scalars.js';
-import { badInput, domainError, formatError } from '../../src/common/errors.js';
+import { badInput, formatError } from '../../src/common/errors.js';
 
 const scalar = new DateScalar();
 for (const value of ['2024-02-29', '2000-01-01', '2026-11-05']) {
@@ -44,7 +44,6 @@ test('domain errors preserve only public metadata', () => {
       return true;
     },
   );
-  assert.throws(() => domainError('NOT_FOUND', 'Missing'), { message: 'Missing' });
   const publicError = formatError({
     message: 'Slow down',
     path: ['profile'],

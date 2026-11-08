@@ -1,5 +1,4 @@
 import { WEB_ROOT } from '../../src/web/web.module.js';
-import { Clock } from '../../src/common/clock.js';
 import { configureApp } from '../../src/configure-app.js';
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
@@ -10,7 +9,6 @@ import { assertTestDatabase, TEST_DATABASE_URL } from './database.js';
 
 export async function createTestApplication(
   module: Type,
-  clock: Clock = new Clock(),
   webRoot?: string,
   cache: { redisUrl?: string; ttlSeconds?: number } = {},
 ) {
@@ -18,8 +16,6 @@ export async function createTestApplication(
   const builder = Test.createTestingModule({
     imports: [EnvironmentModule, PrismaModule, module],
   })
-    .overrideProvider(Clock)
-    .useValue(clock)
     .overrideProvider(ENVIRONMENT)
     .useValue(
       loadEnvironment({
@@ -28,7 +24,6 @@ export async function createTestApplication(
         CACHE_TTL_SECONDS: String(cache.ttlSeconds ?? 60),
         APP_ORIGIN: 'http://localhost:3000',
         NODE_ENV: 'test',
-        AUTH_RATE_KEY: 'test-key-not-for-production'.repeat(3),
       }),
     );
   if (webRoot) builder.overrideProvider(WEB_ROOT).useValue(webRoot);

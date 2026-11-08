@@ -15,7 +15,7 @@ test('static files and SPA fallback do not swallow API, missing assets or non-HT
   await mkdir(join(root, 'assets'));
   await writeFile(join(root, 'index.html'), '<!doctype html><main>Test application</main>');
   await writeFile(join(root, 'assets/app.css'), 'body { color: red; }');
-  const app = await createTestApplication(WebTestModule, undefined, root);
+  const app = await createTestApplication(WebTestModule, root);
   try {
     const http = request(app.getHttpServer());
     const page = await http.get('/some/deep/route').set('Accept', 'text/html').expect(200);
@@ -46,7 +46,7 @@ test('fingerprinted assets support immutable caching, HEAD and conditional reque
   await writeFile(join(root, 'assets/character-sprites-Ab3dE_12.webp'), 'test webp bytes');
   await writeFile(join(root, 'assets/app.css'), 'body {}');
   await writeFile(join(root, 'images/character-sprites.png'), 'legacy image');
-  const app = await createTestApplication(WebTestModule, undefined, root);
+  const app = await createTestApplication(WebTestModule, root);
   try {
     const http = request(app.getHttpServer());
     const url = '/assets/character-sprites-Ab3dE_12.webp';

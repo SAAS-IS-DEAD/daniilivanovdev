@@ -92,7 +92,7 @@ jobs:
           node --input-type=module <<'JS'
           import { randomBytes } from 'node:crypto';
           import { writeFileSync } from 'node:fs';
-          writeFileSync('.env', `POSTGRES_PASSWORD=${randomBytes(24).toString('hex')}\nAUTH_RATE_KEY=${randomBytes(32).toString('hex')}\nAPP_ORIGIN=http://localhost:3000\n`, { mode: 0o600 });
+          writeFileSync('.env', `POSTGRES_PASSWORD=${randomBytes(24).toString('hex')}\nAPP_ORIGIN=http://localhost:3000\n`, { mode: 0o600 });
           JS
       - name: Build and start application
         run: docker compose up --build -d --wait --wait-timeout 180
@@ -104,9 +104,29 @@ jobs:
       - name: Stop isolated application
         if: always()
         run: docker compose down --volumes
+  secrets:
+    name: Secret scan / full Git history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan without exposing matched secrets
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION=8.30.1
+          GITLEAKS_DOWNLOAD_DIR="$(mktemp -d)"
+          GITLEAKS_RELEASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSL "${GITLEAKS_RELEASE_URL}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o "${GITLEAKS_DOWNLOAD_DIR}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL "${GITLEAKS_RELEASE_URL}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" -o "${GITLEAKS_DOWNLOAD_DIR}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          (cd "$GITLEAKS_DOWNLOAD_DIR" && sha256sum --check --ignore-missing "gitleaks_${GITLEAKS_VERSION}_checksums.txt")
+          tar -xzf "${GITLEAKS_DOWNLOAD_DIR}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -C "$GITLEAKS_DOWNLOAD_DIR" gitleaks
+          "$GITLEAKS_DOWNLOAD_DIR/gitleaks" git --no-banner --redact=100 --ignore-gitleaks-allow --log-opts="--all --full-history" "$GITHUB_WORKSPACE"
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [ lint, format, types, build, unit, integration, contract, coverage, ci-tests, e2e ]
+    needs:
+      [ lint, format, types, build, unit, integration, contract, coverage, ci-tests, e2e, secrets ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:

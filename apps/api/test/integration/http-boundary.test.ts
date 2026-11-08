@@ -12,7 +12,7 @@ test('HTTP boundary exposes correlation IDs, restricts CORS and has no mutation 
       .set('Origin', 'http://localhost:3000')
       .send({ query: '{profile{name}}' });
     assert.equal(first.headers['access-control-allow-origin'], 'http://localhost:3000');
-    assert.equal(first.headers['access-control-allow-credentials'], 'true');
+    assert.equal(first.headers['access-control-allow-credentials'], undefined);
     const other = await http
       .post('/graphql')
       .set('Origin', 'https://untrusted.example')
