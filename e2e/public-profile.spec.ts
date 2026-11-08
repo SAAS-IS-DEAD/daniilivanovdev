@@ -109,3 +109,70 @@ test.describe('touch navigation', () => {
     );
   });
 });
+
+test('character sprites use compact fingerprinted WebP assets with immutable cache and matching preload', async ({
+  page,
+  request,
+}) => {
+  const images: string[] = [];
+  page.on('request', (req) => {
+    if (req.resourceType() === 'image') images.push(req.url());
+  });
+  await page.goto('/');
+  const sprite = page.locator('.character-sprite');
+  const background = await sprite.evaluate((element) => getComputedStyle(element).backgroundImage);
+  const url = background.match(/url\(["']?([^"')]+)["']?\)/)?.[1];
+  expect(url).toMatch(/\/assets\/character-sprites-[\w-]+\.webp$/);
+  const response = await request.get(url!);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/webp');
+  expect(response.headers()['cache-control']).toBe('public, max-age=31536000, immutable');
+  expect((await response.body()).length).toBeLessThan(400_000);
+  expect(
+    await page
+      .locator('link[rel="preload"][as="image"]')
+      .evaluate((el) => (el as HTMLLinkElement).href),
+  ).toBe(url);
+  await expect.poll(() => images.filter((image) => image === url).length).toBe(1);
+  expect(images.some((image) => image.endsWith('/images/character-sprites.png'))).toBe(false);
+  expect(
+    await sprite.evaluate(async (element) => {
+      const image = new Image();
+      image.src = getComputedStyle(element).backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)![1];
+      await image.decode();
+      return [image.naturalWidth, image.naturalHeight];
+    }),
+  ).toEqual([1246, 1263]);
+});
+
+test('gaming animation and paused sprite use fingerprinted cacheable assets', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Навыки', exact: true }).click();
+  const gif = page.locator('.character-gaming');
+  await expect(gif).toBeVisible();
+  const gifUrl = await gif.getAttribute('src');
+  expect(gifUrl).toMatch(/\/assets\/character-gaming-[\w-]+\.gif$/);
+  const animation = await request.get(gifUrl!);
+  expect(animation.headers()['cache-control']).toBe('public, max-age=31536000, immutable');
+  await page.getByRole('button', { name: /Выключить анимацию/ }).click();
+  const still = page.locator('.character-gaming-still');
+  const background = await still.evaluate((element) => getComputedStyle(element).backgroundImage);
+  const url = background.match(/url\(["']?([^"')]+)["']?\)/)?.[1];
+  expect(url).toMatch(/\/assets\/character-gaming-sprites-[\w-]+\.webp$/);
+  const response = await request.get(url!);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/webp');
+  expect(response.headers()['cache-control']).toBe('public, max-age=31536000, immutable');
+  expect((await response.body()).length).toBeLessThan(600_000);
+  expect(
+    await still.evaluate(async (element) => {
+      const image = new Image();
+      image.src = getComputedStyle(element).backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)![1];
+      await image.decode();
+      return [image.naturalWidth, image.naturalHeight];
+    }),
+  ).toEqual([1774, 887]);
+});

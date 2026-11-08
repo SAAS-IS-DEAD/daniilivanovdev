@@ -297,7 +297,7 @@ h1 {
   display: block;
   width: 280px;
   height: 288px;
-  background: url("/images/character-sprites.png") no-repeat;
+  background: url("./assets/character-sprites.webp") no-repeat;
   background-size: 1121.4px 1136.7px;
   image-rendering: pixelated;
 }
@@ -1582,7 +1582,7 @@ footer a {
   display: block;
   width: 280px;
   height: 288px;
-  background: url("/images/character-gaming-sprites.png") no-repeat 0 0;
+  background: url("./assets/character-gaming-sprites.webp") no-repeat 0 0;
   background-size: 1149.2px 577.2px;
   image-rendering: pixelated;
 }

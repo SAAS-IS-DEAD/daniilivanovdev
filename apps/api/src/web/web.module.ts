@@ -3,7 +3,8 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { NestModule } from '@nestjs/common';
 import { static as serveStatic } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
+import { staticCacheControl } from './static-cache-policy.js';
 import { existsSync } from 'node:fs';
 
 export const WEB_ROOT = Symbol('WEB_ROOT');
@@ -18,7 +19,12 @@ export class WebModule implements NestModule {
   ) {}
   configure() {
     const webRoot = this.webRoot;
-    const staticFiles = serveStatic(webRoot, { index: false });
+    const staticFiles = serveStatic(webRoot, {
+      index: false,
+      setHeaders: (res, path) => {
+        res.setHeader('Cache-Control', staticCacheControl(relative(webRoot, path)));
+      },
+    });
     this.adapter.httpAdapter.use((req: Request, res: Response, next: NextFunction) => {
       if (/^\/(graphql|health)(\/|$)/.test(req.path) || !['GET', 'HEAD'].includes(req.method))
         return next();

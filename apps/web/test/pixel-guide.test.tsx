@@ -39,7 +39,10 @@ test('gaming GIF is replaced with a still image while paused', () => {
     gaming: true,
   };
   const { rerender, container } = render(<PixelGuide {...props} />);
-  expect(screen.getByRole('img')).toHaveAttribute('src', '/images/character-gaming.gif');
+  expect(screen.getByRole('img')).toHaveAttribute(
+    'src',
+    expect.stringMatching(/character-gaming.*\.gif$/),
+  );
   rerender(<PixelGuide {...props} paused />);
   expect(container.querySelector('img')).toBeNull();
   expect(screen.getByRole('img')).toHaveClass('character-gaming-still');

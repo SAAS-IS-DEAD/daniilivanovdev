@@ -371,3 +371,39 @@
   thresholds were not reduced. Local production Docker startup smoke and nine browser
   E2E passed for the response-cache wiring. Final revision will also pass CI before
   the publication job can release its image.
+
+## 2026-11-08 — компактные и кешируемые спрайты
+
+Запись nginx `GET /images/character-sprites.png` с 15.198 с относится к
+2026-11-08 17:20:37.938 UTC, во время поиска максимума RPS. `$request_time`
+включает передачу клиенту; сама запись не позволяет отделить ожидание upstream
+от медленной загрузки клиентом. Контрольное скачивание с сервера вне нагрузки:
+TTFB 50.6 мс, полное время 64.4 мс, 1 221 871 байт. Поэтому фикс не обещает
+устранение любой сетевой задержки.
+
+Основной спрайт перекодирован WebP quality=90, alpha_quality=100, method=6:
+1 221 871 → 368 414 байт (-69.8%). Игровой: 1 657 932 → 511 808 (-69.1%).
+Это сжатие RGB с потерями; размеры и alpha-канал проверены попиксельно и сохранены.
+Размеры кадров, координаты и таймеры анимации не менялись. Исходные PNG и GIF
+в public сохранены для старых клиентов. Для повторной генерации:
+`cwebp -q 90 -alpha_q 100 -m 6 input.png -o output.webp`.
+
+Новые CSS-спрайты и GIF импортируются Vite и получают hash в URL. Основной
+спрайт preload-ится тем же URL. Только fingerprinted файлы внутри assets
+получают `public, max-age=31536000, immutable`; HTML и неверсионированные файлы
+получают `no-cache`. Новый hash при изменении содержимого обновляет кеш.
+
+TDD: новый browser regression упал на старом PNG URL. HTTP-интеграция через
+Nest с настоящей отдельной Testcontainers PostgreSQL упала на старом
+`public, max-age=0` вместо immutable. После реализации `npm run verify` прошёл:
+74 backend unit/integration/contract теста, backend coverage 97.35% lines,
+80.21% branches, 95.79% functions; frontend coverage и CI checks зелёные.
+Проверены политика кеша и её границы, HTML, missing assets/API 404, HEAD,
+ETag/304, Range/206, WebP MIME. Ручная проверка декодирования и alpha использует
+Pillow/NumPy вне продуктовой сборки; CI проверяет реальное декодирование WebP,
+размер, fingerprint/preload URL и заголовки через браузерный E2E.
+
+Все 11 браузерных E2E прошли на production Docker-сборке с отдельным Compose
+проектом, PostgreSQL и Redis. Дополнительно проверены main preload без двойной
+загрузки, hash URL, WebP decode/размер, игровой GIF и WebP при паузе; размеры
+1246×1263 и 1774×887 сохранены. Тестовые контейнеры и volume удалены в finally.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
+import gamingAnimation from '../assets/character-gaming.gif';
 
 export type Pose = 'idle' | 'wave' | 'talk' | 'think';
 // Foot anchors from the owner's animation demo keep each frame on the same ground plane.
@@ -121,7 +122,7 @@ export function PixelGuide({
             ) : (
               <img
                 className="character-gaming"
-                src="/images/character-gaming.gif"
+                src={gamingAnimation}
                 alt="Пиксельный персонаж с геймпадом"
                 width="340"
                 height="340"
